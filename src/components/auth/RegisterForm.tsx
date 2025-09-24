@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Input } from '@/components/ui/Input';
+import { detectPixKeyType } from '@/lib/validation';
 import { Button } from '@/components/ui/Button';
 import { signIn } from 'next-auth/react';
 
@@ -68,16 +68,16 @@ export function RegisterForm() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
           <label className="mb-1 block text-sm font-medium">Email</label>
-          <Input type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} aria-required="true" required />
+          <input type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required className="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-900" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Username</label>
-          <Input
+          <input
             value={username}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-            aria-required="true"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value.toLowerCase())}
             required
             placeholder="ex: clip_master"
+            className="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-900"
           />
           {username.length > 0 && !usernameRegex.test(username) && (
             <p className="mt-1 text-xs text-red-500">Use 3-20 caracteres: letras, números ou _</p>
@@ -85,15 +85,18 @@ export function RegisterForm() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Chave Pix (opcional)</label>
-          <Input value={pixKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPixKey(e.target.value)} />
+          <input value={pixKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPixKey(e.target.value.trim())} placeholder="CPF, CNPJ, email, telefone ou chave aleatória" className="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-900" />
+          {pixKey && detectPixKeyType(pixKey) === 'unknown' && (
+            <p className="mt-1 text-xs text-red-500">Formato de chave PIX inválido.</p>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Senha</label>
-          <Input type="password" minLength={6} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} aria-required="true" required />
+          <input type="password" minLength={6} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required className="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-900" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Confirmar Senha</label>
-          <Input type="password" value={passwordConfirm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordConfirm(e.target.value)} aria-required="true" required />
+          <input type="password" value={passwordConfirm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordConfirm(e.target.value)} required className="block w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-900" />
         </div>
       </div>
       <div className="flex items-start space-x-2">

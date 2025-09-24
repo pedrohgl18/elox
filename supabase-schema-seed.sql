@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text UNIQUE NOT NULL,
   username text UNIQUE NOT NULL, -- formato validado na aplicação: ^[a-zA-Z0-9_]{3,20}$
+  username_normalized text GENERATED ALWAYS AS (lower(username)) STORED,
   role text NOT NULL,
   password_hash text,
   is_active boolean DEFAULT true,
@@ -60,6 +61,22 @@ CREATE TABLE IF NOT EXISTS public.competition_rewards (
   amount numeric(12,2) NOT NULL,
   UNIQUE(competition_id, place)
 );
+
+-- Índice único para enforcement case-insensitive (evita username duplicado apenas por caixa)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uq_profiles_username_normalized'
+  ) THEN
+    EXECUTE 'CREATE UNIQUE INDEX uq_profiles_username_normalized ON public.profiles (username_normalized)';
+  END IF;
+END$$;
+
+-- Função utilitária para busca case-insensitive de username
+CREATE OR REPLACE FUNCTION public.search_username_ci(search_value text)
+RETURNS SETOF public.profiles AS $$
+  SELECT * FROM public.profiles WHERE username_normalized = lower(search_value);
+$$ LANGUAGE sql STABLE;
 
 -- Observação: usar DEFAULT para deixar o banco gerar UUID válidos.
 INSERT INTO public.profiles (email, username, role, password_hash)
