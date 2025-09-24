@@ -2,12 +2,7 @@
 
 import React from 'react';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  type?: React.HTMLInputTypeAttribute;
-  placeholder?: string;
-  defaultValue?: string | number | readonly string[];
-  value?: string | number | readonly string[];
-}
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, ...props },
