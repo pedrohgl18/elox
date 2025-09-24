@@ -48,12 +48,12 @@ export async function POST(req: NextRequest) {
     // Verifica email duplicado
     const existingEmail = await svc.from('profiles').select('id').eq('email', email).maybeSingle();
     if (existingEmail.data) return NextResponse.json({ ok: false, error: 'Email já cadastrado' }, { status: 409 });
-    // Verifica username duplicado (case-insensitive). Primeiro tenta coluna normalized, senão fallback comparando lower(username)
-    let existingUser = await svc.from('profiles').select('id').eq('username', username).maybeSingle();
+    // Verifica username duplicado (case-insensitive) usando username_normalized se disponível
+    let existingUser: any = await svc.from('profiles').select('id').eq('username_normalized', usernameNorm).maybeSingle();
     if (!existingUser.data) {
-      // fallback search case-insensitive
-      const { data: dupeList } = await svc.rpc('search_username_ci', { search_value: usernameNorm }).select('*').limit?.(1) as any;
-      if (Array.isArray(dupeList) && dupeList.length > 0) existingUser = { data: dupeList[0] } as any;
+      // fallback se coluna não existir ainda: comparar lower(username)
+      const { data: rawList } = await svc.from('profiles').select('id, username').ilike('username', usernameNorm);
+      if (rawList && rawList.length > 0) existingUser = { data: rawList[0] };
     }
     if (existingUser.data) return NextResponse.json({ ok: false, error: 'Username indisponível' }, { status: 409 });
     const hash = await bcrypt.hash(password, 10);
@@ -70,6 +70,13 @@ export async function POST(req: NextRequest) {
     } as any;
     const { error } = await svc.from('profiles').insert(insert);
     if (error) {
+      const code = (error as any).code;
+      if (code === '23505') { // unique violation
+        const msg = (error as any).message || '';
+        if (msg.includes('email')) return NextResponse.json({ ok: false, error: 'Email já cadastrado' }, { status: 409 });
+        if (msg.includes('username')) return NextResponse.json({ ok: false, error: 'Username indisponível' }, { status: 409 });
+        return NextResponse.json({ ok: false, error: 'Registro duplicado' }, { status: 409 });
+      }
       console.error('Erro Supabase insert profile', error);
       return NextResponse.json({ ok: false, error: 'Falha ao criar usuário' }, { status: 500 });
     }
