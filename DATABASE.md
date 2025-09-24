@@ -21,6 +21,7 @@ Campos:
 - total_earnings: numeric(12,2) DEFAULT 0
 - pix_key: text NULL
 - created_at: timestamptz DEFAULT now()
+- password_hash: text (armazenar hash bcrypt para integração com autenticação custom futura)
 
 Índices:
 

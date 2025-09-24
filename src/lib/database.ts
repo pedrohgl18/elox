@@ -1,4 +1,5 @@
 import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador } from '@/lib/types';
+import { createSupabaseAdapter } from './supabaseAdapter';
 
 export type Role = 'admin' | 'clipador';
 
@@ -218,4 +219,6 @@ class InMemoryDB {
   };
 }
 
-export const db = new InMemoryDB();
+// Exporta adaptador dinâmico: tenta Supabase primeiro, fallback para memória
+const supabaseAdapter = createSupabaseAdapter();
+export const db: any = supabaseAdapter ?? new InMemoryDB();
