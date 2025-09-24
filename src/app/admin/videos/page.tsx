@@ -6,13 +6,14 @@ import { db } from '@/lib/database';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Video } from '@/lib/types';
 
 export default async function AdminVideosPage() {
   const session: any = await getServerSession(authOptions as any);
   if (!session?.user) redirect(config.urls.login);
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
 
-  const videos = await db.video.listForUser({ role: 'admin' } as any);
+  const videos: Video[] = await db.video.listForUser({ role: 'admin' } as any);
 
   return (
       <Card>
@@ -28,7 +29,7 @@ export default async function AdminVideosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-950">
-                {videos.map((v) => (
+                {videos.map((v: Video) => (
                   <tr key={v.id} className="group hover:bg-slate-900">
                     <td className="px-4 py-2 text-slate-100">{v.clipadorId}</td>
                     <td className="px-4 py-2 text-slate-300">{v.socialMedia.toUpperCase()}</td>

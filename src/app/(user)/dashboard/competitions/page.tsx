@@ -1,5 +1,6 @@
 import React from 'react';
 import { db } from '@/lib/database';
+import { Competition } from '@/lib/types';
 import { formatDateShort } from '@/lib/format';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth/next';
@@ -18,12 +19,12 @@ export default async function UserCompetitionsPage() {
   if (!user) user = await db.auth.getByIdOrEmail((session.user as any).email as string);
   if (!user) redirect(config.urls.login);
 
-  const comps = await db.competition.list();
+  const comps: Competition[] = await db.competition.list();
   const now = Date.now();
-  const byStatus = {
-    ACTIVE: comps.filter(c => now >= c.startDate.getTime() && now <= c.endDate.getTime()),
-    SCHEDULED: comps.filter(c => now < c.startDate.getTime()),
-    COMPLETED: comps.filter(c => now > c.endDate.getTime()),
+  const byStatus: Record<'ACTIVE'|'SCHEDULED'|'COMPLETED', Competition[]> = {
+    ACTIVE: comps.filter((c: Competition) => now >= c.startDate.getTime() && now <= c.endDate.getTime()),
+    SCHEDULED: comps.filter((c: Competition) => now < c.startDate.getTime()),
+    COMPLETED: comps.filter((c: Competition) => now > c.endDate.getTime()),
   };
 
   const Section = ({ title, items }: { title: string; items: typeof comps }) => (
@@ -33,7 +34,7 @@ export default async function UserCompetitionsPage() {
         <div className="text-slate-400 text-sm border border-slate-800 bg-slate-900/60 rounded-lg p-4">Nada por aqui.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {items.map(c => (
+          {items.map((c: Competition) => (
             <div key={c.id} className="border border-slate-800 bg-slate-900/60 rounded-xl p-4 flex gap-4">
               {c.bannerImageUrl ? (
                 <img src={c.bannerImageUrl} alt={c.name} className="h-16 w-28 object-cover rounded-lg border border-slate-800" />

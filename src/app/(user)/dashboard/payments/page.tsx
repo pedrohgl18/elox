@@ -39,20 +39,20 @@ export default async function PaymentsPage() {
     redirect(config.urls.login);
   }
   
-  const payments = await db.payment.listForUser(user);
+  const payments: Payment[] = await db.payment.listForUser(user);
   
   // Estatísticas dos pagamentos
   const totalRequests = payments.length;
-  const pendingPayments = payments.filter(p => p.status === 'PENDING');
-  const processedPayments = payments.filter(p => p.status === 'PROCESSED');
-  const failedPayments = payments.filter(p => p.status === 'FAILED');
+  const pendingPayments = payments.filter((p: Payment) => p.status === 'PENDING');
+  const processedPayments = payments.filter((p: Payment) => p.status === 'PROCESSED');
+  const failedPayments = payments.filter((p: Payment) => p.status === 'FAILED');
   
-  const totalRequested = payments.reduce((acc, p) => acc + p.amount, 0);
-  const totalProcessed = processedPayments.reduce((acc, p) => acc + p.amount, 0);
-  const totalPending = pendingPayments.reduce((acc, p) => acc + p.amount, 0);
+  const totalRequested = payments.reduce((acc: number, p: Payment) => acc + p.amount, 0);
+  const totalProcessed = processedPayments.reduce((acc: number, p: Payment) => acc + p.amount, 0);
+  const totalPending = pendingPayments.reduce((acc: number, p: Payment) => acc + p.amount, 0);
 
   // Monta linhas e colunas para DataTable simples
-  const tableRows = payments.map((p) => ({
+  const tableRows = payments.map((p: Payment) => ({
     valor: (
       <div className="flex items-center space-x-1 font-medium">
         <DollarSign className="h-4 w-4 text-green-600" />

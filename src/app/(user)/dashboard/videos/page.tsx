@@ -35,16 +35,16 @@ export default async function VideosPage() {
     redirect(config.urls.login);
   }
   
-  const videos = await db.video.listForUser(user);
+  const videos: Video[] = await db.video.listForUser(user);
   
   // Estatísticas dos vídeos
   const totalVideos = videos.length;
-  const approvedVideos = videos.filter(v => v.status === 'APPROVED').length;
-  const totalViews = videos.reduce((acc, v) => acc + v.views, 0);
-  const totalEarnings = videos.reduce((acc, v) => acc + v.earnings, 0);
+  const approvedVideos = videos.filter((v: Video) => v.status === 'APPROVED').length;
+  const totalViews = videos.reduce((acc: number, v: Video) => acc + v.views, 0);
+  const totalEarnings = videos.reduce((acc: number, v: Video) => acc + v.earnings, 0);
 
   // Colunas da tabela de vídeos
-  const tableRows = videos.map((v) => ({
+  const tableRows = videos.map((v: Video) => ({
     url: (
       <a href={v.url} className="text-brand-400 underline text-sm" target="_blank" rel="noreferrer">
         Ver Vídeo

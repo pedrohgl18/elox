@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatCurrencyBRL } from '@/lib/format';
+import { Video, Payment } from '@/lib/types';
 import { User, Mail, Calendar, Shield, Wallet, Settings, Save, Edit3, AlertTriangle } from 'lucide-react';
 
 export default async function ProfilePage() {
@@ -38,13 +39,13 @@ export default async function ProfilePage() {
     redirect(config.urls.login);
   }
   
-  const videos = await db.video.listForUser(user);
-  const payments = await db.payment.listForUser(user);
+  const videos: Video[] = await db.video.listForUser(user);
+  const payments: Payment[] = await db.payment.listForUser(user);
   
   // Estatísticas do perfil
   const totalVideos = videos.length;
-  const approvedVideos = videos.filter(v => v.status === 'APPROVED').length;
-  const totalViews = videos.reduce((acc, v) => acc + v.views, 0);
+  const approvedVideos = videos.filter((v: Video) => v.status === 'APPROVED').length;
+  const totalViews = videos.reduce((acc: number, v: Video) => acc + v.views, 0);
   const totalEarnings = clipador.totalEarnings;
   const accountAge = Math.floor((Date.now() - clipador.createdAt.getTime()) / (1000 * 60 * 60 * 24));
 

@@ -9,6 +9,7 @@ import { UserLayout } from '@/components/layout/UserLayout';
 import { formatCurrencyBRL } from '@/lib/format';
 import { BarChart } from '@/components/charts/BarChart';
 import { BarChart3, Calendar, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lucide-react';
+import { Video as VideoType, Payment } from '@/lib/types';
 
 export default async function StatsPage() {
   const session: any = await getServerSession(authOptions as any);
@@ -28,21 +29,21 @@ export default async function StatsPage() {
     redirect(config.urls.login);
   }
 
-  const videos = await db.video.listForUser(user);
-  const payments = await db.payment.listForUser(user);
+  const videos: VideoType[] = await db.video.listForUser(user);
+  const payments: Payment[] = await db.payment.listForUser(user);
 
   const totalEarnings = payments
-    .filter((p) => p.status !== 'FAILED')
-    .reduce((acc, p) => acc + p.amount, 0);
-  const totalViews = videos.reduce((acc, v) => acc + v.views, 0);
-  const approvedVideos = videos.filter(v => v.status === 'APPROVED').length;
-  const pendingVideos = videos.filter(v => v.status === 'PENDING').length;
-  const rejectedVideos = videos.filter(v => v.status === 'REJECTED').length;
+    .filter((p: Payment) => p.status !== 'FAILED')
+    .reduce((acc: number, p: Payment) => acc + p.amount, 0);
+  const totalViews = videos.reduce((acc: number, v: VideoType) => acc + v.views, 0);
+  const approvedVideos = videos.filter((v: VideoType) => v.status === 'APPROVED').length;
+  const pendingVideos = videos.filter((v: VideoType) => v.status === 'PENDING').length;
+  const rejectedVideos = videos.filter((v: VideoType) => v.status === 'REJECTED').length;
 
   // Estatísticas por rede social
-  const tiktokVideos = videos.filter(v => v.socialMedia === 'tiktok');
-  const instagramVideos = videos.filter(v => v.socialMedia === 'instagram');
-  const kwaiVideos = videos.filter(v => v.socialMedia === 'kwai');
+  const tiktokVideos = videos.filter((v: VideoType) => v.socialMedia === 'tiktok');
+  const instagramVideos = videos.filter((v: VideoType) => v.socialMedia === 'instagram');
+  const kwaiVideos = videos.filter((v: VideoType) => v.socialMedia === 'kwai');
 
   const chartLabels = ['TikTok', 'Instagram', 'Kwai'];
   const chartValues = [tiktokVideos.length, instagramVideos.length, kwaiVideos.length];

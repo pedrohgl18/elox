@@ -8,6 +8,7 @@ import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
 import { Upload, Video, TrendingUp, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Video as VideoType } from '@/lib/types';
 
 export default async function UploadPage() {
   const session: any = await getServerSession(authOptions as any);
@@ -27,8 +28,8 @@ export default async function UploadPage() {
     redirect(config.urls.login);
   }
   
-  const videos = await db.video.listForUser(user);
-  const recentVideos = videos.slice(-5); // Últimos 5 vídeos
+  const videos: VideoType[] = await db.video.listForUser(user);
+  const recentVideos: VideoType[] = videos.slice(-5); // Últimos 5 vídeos
 
   return (
     <UserLayout username={user.username} email={user.email}>
@@ -164,19 +165,19 @@ export default async function UploadPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Aprovados</span>
                     <span className="font-medium text-green-600">
-                      {videos.filter(v => v.status === 'APPROVED').length}
+                      {videos.filter((v: VideoType) => v.status === 'APPROVED').length}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Pendentes</span>
                     <span className="font-medium text-yellow-600">
-                      {videos.filter(v => v.status === 'PENDING').length}
+                      {videos.filter((v: VideoType) => v.status === 'PENDING').length}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Taxa de Aprovação</span>
                     <span className="font-medium">
-                      {videos.length > 0 ? Math.round((videos.filter(v => v.status === 'APPROVED').length / videos.length) * 100) : 0}%
+                      {videos.length > 0 ? Math.round((videos.filter((v: VideoType) => v.status === 'APPROVED').length / videos.length) * 100) : 0}%
                     </span>
                   </div>
                 </div>
@@ -191,7 +192,7 @@ export default async function UploadPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {recentVideos.map((video) => (
+                    {recentVideos.map((video: VideoType) => (
                       <div key={video.id} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
                           <Video className="h-4 w-4 text-gray-400 flex-shrink-0" />

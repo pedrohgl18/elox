@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { formatCurrencyBRL } from '@/lib/format';
+import { Video, Payment } from '@/lib/types';
 import { Trophy, Crown, Medal, Users } from 'lucide-react';
 
 export default async function RankingPage() {
@@ -35,19 +36,19 @@ export default async function RankingPage() {
     redirect(config.urls.login);
   }
 
-  const userVideos = await db.video.listForUser(user);
-  const userPayments = await db.payment.listForUser(user);
+  const userVideos: Video[] = await db.video.listForUser(user);
+  const userPayments: Payment[] = await db.payment.listForUser(user);
   const userEarnings = userPayments
-    .filter((p) => p.status !== 'FAILED')
-    .reduce((acc, p) => acc + p.amount, 0);
-  const userViews = userVideos.reduce((acc, v) => acc + v.views, 0);
+    .filter((p: Payment) => p.status !== 'FAILED')
+    .reduce((acc: number, p: Payment) => acc + p.amount, 0);
+  const userViews = userVideos.reduce((acc: number, v: Video) => acc + v.views, 0);
 
   // Mock data para o ranking (em um cenário real, isso viria do banco)
   const mockRanking = [
     { username: 'clipador_pro', totalEarnings: 2850, totalViews: 125000, approvedVideos: 45, totalVideos: 52 },
     { username: 'viral_master', totalEarnings: 2340, totalViews: 98000, approvedVideos: 38, totalVideos: 41 },
     { username: 'trend_hunter', totalEarnings: 1920, totalViews: 87000, approvedVideos: 35, totalVideos: 43 },
-    { username: user.username, totalEarnings: userEarnings, totalViews: userViews, approvedVideos: userVideos.filter(v => v.status === 'APPROVED').length, totalVideos: userVideos.length },
+  { username: user.username, totalEarnings: userEarnings, totalViews: userViews, approvedVideos: userVideos.filter((v: Video) => v.status === 'APPROVED').length, totalVideos: userVideos.length },
     { username: 'content_king', totalEarnings: 1650, totalViews: 76000, approvedVideos: 32, totalVideos: 39 },
     { username: 'clip_wizard', totalEarnings: 1480, totalViews: 65000, approvedVideos: 28, totalVideos: 35 },
     { username: 'social_ninja', totalEarnings: 1320, totalViews: 58000, approvedVideos: 25, totalVideos: 31 }
@@ -106,7 +107,7 @@ export default async function RankingPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-300">Vídeos:</span>
-                    <span className="font-medium text-slate-100">{`${userVideos.filter(v => v.status === 'APPROVED').length}/${userVideos.length}`}</span>
+                    <span className="font-medium text-slate-100">{`${userVideos.filter((v: Video) => v.status === 'APPROVED').length}/${userVideos.length}`}</span>
                 </div>
               </div>
             </div>

@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatCurrencyBRL } from '@/lib/format';
+import { Payment } from '@/lib/types';
 
 export default async function AdminPagamentosPage() {
   const session: any = await getServerSession(authOptions as any);
   if (!session?.user) redirect(config.urls.login);
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
 
-  const payments = await db.payment.listForUser({ role: 'admin' } as any);
+  const payments: Payment[] = await db.payment.listForUser({ role: 'admin' } as any);
 
   return (
       <Card>
@@ -29,7 +30,7 @@ export default async function AdminPagamentosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-950">
-                {payments.map((p) => (
+                {payments.map((p: Payment) => (
                   <tr key={p.id} className="group hover:bg-slate-900">
                     <td className="px-4 py-2 text-slate-100">{p.clipadorId}</td>
                     <td className="px-4 py-2 font-medium text-green-400">{formatCurrencyBRL(p.amount)}</td>

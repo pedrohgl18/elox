@@ -12,6 +12,7 @@ import PanelFeatures from '@/components/ui/PanelFeatures';
 import Audience from '@/components/ui/Audience';
 import CompetitionBanner from '@/components/ui/CompetitionBanner';
 import { db } from '@/lib/database';
+import { Competition } from '@/lib/types';
 import LeaderboardPreview from '@/components/ui/LeaderboardPreview';
 import RewardsBreakdown from '@/components/ui/RewardsBreakdown';
 import { getServerSession } from 'next-auth/next';
@@ -23,9 +24,9 @@ import ViralMeter from '@/components/ui/ViralMeter';
 export default async function LandingPage() {
   const session: any = await getServerSession(authOptions as any);
   const isLogged = !!session?.user;
-  const comps = await db.competition.list();
+  const comps: Competition[] = await db.competition.list();
   const now = Date.now();
-  const active = comps.find(c => now >= c.startDate.getTime() && now <= c.endDate.getTime() && c.isActive);
+  const active = comps.find((c: Competition) => now >= c.startDate.getTime() && now <= c.endDate.getTime() && c.isActive);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-950 to-black flex flex-col items-center px-4">
@@ -77,7 +78,7 @@ export default async function LandingPage() {
       {/* Competição Atual */}
       {active && (
         <section className="w-full max-w-7xl mx-auto mb-8 px-2 sm:px-4">
-          <CompetitionBanner name={active.name} endsAt={active.endDate} prize={(active.rewards?.length ? `R$ ${active.rewards.reduce((sum, r) => sum + (r.amount||0), 0).toLocaleString('pt-BR')}` : '—')} cpm={active.rules.cpm} />
+          <CompetitionBanner name={active.name} endsAt={active.endDate} prize={(active.rewards?.length ? `R$ ${active.rewards.reduce((sum: number, r: any) => sum + (r.amount||0), 0).toLocaleString('pt-BR')}` : '—')} cpm={active.rules.cpm} />
         </section>
       )}
 

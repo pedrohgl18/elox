@@ -12,6 +12,7 @@ import { formatCurrencyBRL } from '@/lib/format';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/database';
+import { Video, Payment } from '@/lib/types';
 import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
@@ -36,20 +37,20 @@ export default async function UserDashboard() {
     redirect(config.urls.login);
   }
   
-  const videos = await db.video.listForUser(user);
-  const payments = await db.payment.listForUser(user);
+  const videos: Video[] = await db.video.listForUser(user);
+  const payments: Payment[] = await db.payment.listForUser(user);
 
   const totalEarnings = payments
-    .filter((p) => p.status !== 'FAILED')
-    .reduce((acc, p) => acc + p.amount, 0);
+    .filter((p: Payment) => p.status !== 'FAILED')
+    .reduce((acc: number, p: Payment) => acc + p.amount, 0);
   const monthEarnings = 0; // placeholder; calcular por mês quando houver datas/validações
-  const totalViews = videos.reduce((acc, v) => acc + v.views, 0);
+  const totalViews = videos.reduce((acc: number, v: Video) => acc + v.views, 0);
 
   const labels = ['TikTok', 'Instagram', 'Kwai'];
   const values = [
-    videos.filter((v) => v.socialMedia === 'tiktok').length,
-    videos.filter((v) => v.socialMedia === 'instagram').length,
-    videos.filter((v) => v.socialMedia === 'kwai').length,
+    videos.filter((v: Video) => v.socialMedia === 'tiktok').length,
+    videos.filter((v: Video) => v.socialMedia === 'instagram').length,
+    videos.filter((v: Video) => v.socialMedia === 'kwai').length,
   ];
 
   return (

@@ -27,7 +27,7 @@ export default async function AdminClipadoresPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-950">
-                {users.map((u) => (
+                {users.map((u: any) => (
                   <tr key={u.id} className="group hover:bg-slate-900">
                     <td className="px-4 py-2 text-slate-100">{u.username}</td>
                     <td className="px-4 py-2 text-slate-300">{u.email}</td>

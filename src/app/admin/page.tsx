@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { config } from '@/lib/config';
 import { db } from '@/lib/database';
+import { Video, Payment } from '@/lib/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { BarChart } from '@/components/charts/BarChart';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -16,15 +17,15 @@ export default async function AdminHome() {
 
   // KPIs simulados a partir do DB em memória
   const users = await db.admin.listClipadores();
-  const videos = await db.video.listForUser({} as any); // admin lista todos
-  const payments = await db.payment.listForUser({ role: 'admin' } as any);
+  const videos: Video[] = await db.video.listForUser({} as any); // admin lista todos
+  const payments: Payment[] = await db.payment.listForUser({ role: 'admin' } as any);
 
-  const activeUsers = users.filter(u => u.clipador?.isActive).length;
-  const pendingVideos = videos.filter(v => v.status === 'PENDING').length;
-  const processedPayments = payments.filter(p => p.status === 'PROCESSED');
-  const failedPayments = payments.filter(p => p.status === 'FAILED');
-  const totalPaid = processedPayments.reduce((acc, p) => acc + p.amount, 0);
-  const totalViews = videos.reduce((acc, v) => acc + v.views, 0);
+  const activeUsers = users.filter((u: any) => u.clipador?.isActive).length; // TODO: tipar AuthUserRecord exportável
+  const pendingVideos = videos.filter((v: Video) => v.status === 'PENDING').length;
+  const processedPayments = payments.filter((p: Payment) => p.status === 'PROCESSED');
+  const failedPayments = payments.filter((p: Payment) => p.status === 'FAILED');
+  const totalPaid = processedPayments.reduce((acc: number, p: Payment) => acc + p.amount, 0);
+  const totalViews = videos.reduce((acc: number, v: Video) => acc + v.views, 0);
 
   return (
     <div className="space-y-8">
@@ -66,9 +67,9 @@ export default async function AdminHome() {
             <BarChart
               labels={["TikTok", "Instagram", "Kwai"]}
               values={[
-                videos.filter(v => v.socialMedia === 'tiktok').length,
-                videos.filter(v => v.socialMedia === 'instagram').length,
-                videos.filter(v => v.socialMedia === 'kwai').length,
+                videos.filter((v: Video) => v.socialMedia === 'tiktok').length,
+                videos.filter((v: Video) => v.socialMedia === 'instagram').length,
+                videos.filter((v: Video) => v.socialMedia === 'kwai').length,
               ]}
               title="Envios por Rede"
             />
@@ -101,7 +102,7 @@ export default async function AdminHome() {
           <CardContent>
             {/* Lista simplificada */}
             <ul className="divide-y divide-slate-800">
-              {videos.slice(0, 8).map(v => (
+              {videos.slice(0, 8).map((v: Video) => (
                 <li key={v.id} className="py-3 flex items-center justify-between">
                   <div className="text-sm">
                     <div className="text-slate-100 font-medium">{v.socialMedia.toUpperCase()}</div>
@@ -117,7 +118,7 @@ export default async function AdminHome() {
           <CardHeader>Clipadores Recentes</CardHeader>
           <CardContent>
             <ul className="divide-y divide-slate-800">
-              {users.slice(0, 8).map(u => (
+              {users.slice(0, 8).map((u: any) => (
                 <li key={u.id} className="py-3 flex items-center justify-between text-sm">
                   <div>
                     <div className="text-slate-100 font-medium">{u.username}</div>

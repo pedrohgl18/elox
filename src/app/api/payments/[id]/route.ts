@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const list = await db.payment.listForUser(user);
-  const p = list.find((x) => x.id === params.id);
+  const p = list.find((x: any) => x.id === params.id);
   if (!p) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
   return NextResponse.json(p);
 }

@@ -1,6 +1,7 @@
-import { getSupabaseClient } from './supabaseClient';
+import { getSupabaseClient, getSupabaseServiceClient } from './supabaseClient';
 import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador } from './types';
 import { AuthUserRecord, Role } from './database';
+import bcrypt from 'bcryptjs';
 
 // Tipos de linhas vindas do Supabase
 interface ProfileRow {
@@ -126,9 +127,22 @@ export function createSupabaseAdapter() {
 
   return {
     auth: {
-      findByEmailAndPassword: async (_email: string, _password: string) => {
-        // Autenticação real virá depois via NextAuth + Supabase ou provider custom.
-        return null;
+      findByEmailAndPassword: async (email: string, password: string) => {
+        // Busca somente pelas colunas necessárias
+        const svc = getSupabaseServiceClient();
+        const cli = svc || supabase; // fallback se não houver service key (dev)
+        const { data, error } = await cli
+          .from('profiles')
+          .select('id,email,username,role,is_active,warnings,total_earnings,pix_key,created_at,password_hash')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+        if (error || !data) return null;
+        const row = data as ProfileRow & { password_hash: string | null };
+        if (!row.password_hash) return null;
+        const ok = await bcrypt.compare(password, row.password_hash);
+        if (!ok) return null;
+        return mapProfile(row);
       },
       getById: async (id: string) => {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();

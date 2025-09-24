@@ -11,7 +11,7 @@ export async function GET() {
       user: session.user,
       expires: session.expires
     } : null,
-    users: db.users.map((u) => ({ id: u.id, email: u.email, role: u.role })),
+  users: db.users.map((u: any) => ({ id: u.id, email: u.email, role: u.role })),
     message: 'Debug: sessão e dados disponíveis'
   });
 }

@@ -23,7 +23,7 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
           <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
             <h2 className="font-semibold mb-2">Premiações</h2>
             <ul className="text-sm text-slate-300 space-y-1">
-              {c.rewards.map(r => (
+              {c.rewards.map((r: any) => (
                 <li key={r.place}>#{r.place} • R$ {(r.amount/1).toFixed(2)} {r.description ? `• ${r.description}` : ''}</li>
               ))}
             </ul>

@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { db } from '@/lib/database';
 import { formatDateShort } from '@/lib/format';
 import { Plus, Pencil, Eye } from 'lucide-react';
+import { Competition } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCompeticoesPage() {
-  const list = await db.competition.list();
+  const list: Competition[] = await db.competition.list();
 
   const now = Date.now();
   const statusOf = (start: Date, end: Date) => {
@@ -32,7 +33,7 @@ export default async function AdminCompeticoesPage() {
         {list.length === 0 && (
           <div className="border border-slate-800 bg-slate-900/60 rounded-xl p-6 text-slate-300">Nenhuma competição cadastrada.</div>
         )}
-        {list.map((c) => {
+  {list.map((c: Competition) => {
           const st = statusOf(c.startDate, c.endDate);
           return (
             <div key={c.id} className="border border-slate-800 bg-slate-900/60 rounded-xl p-4 flex items-center gap-4">
