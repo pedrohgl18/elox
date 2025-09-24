@@ -14,6 +14,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [pixKey, setPixKey] = useState('');
+  const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -29,6 +30,10 @@ export function RegisterForm() {
     }
     if (!acceptTerms) {
       setError('Você deve aceitar os Termos de Serviço');
+      return;
+    }
+    if (!usernameRegex.test(username)) {
+      setError('Username inválido. Use 3-20 caracteres: letras, números, underscore.');
       return;
     }
     setIsLoading(true);
@@ -67,7 +72,16 @@ export function RegisterForm() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Username</label>
-          <Input value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} aria-required="true" required />
+          <Input
+            value={username}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+            aria-required="true"
+            required
+            placeholder="ex: clip_master"
+          />
+          {username.length > 0 && !usernameRegex.test(username) && (
+            <p className="mt-1 text-xs text-red-500">Use 3-20 caracteres: letras, números ou _</p>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Chave Pix (opcional)</label>

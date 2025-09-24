@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text UNIQUE NOT NULL,
-  username text UNIQUE NOT NULL,
+  username text UNIQUE NOT NULL, -- formato validado na aplicação: ^[a-zA-Z0-9_]{3,20}$
   role text NOT NULL,
   password_hash text,
   is_active boolean DEFAULT true,

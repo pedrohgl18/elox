@@ -2,12 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import bcrypt from 'bcryptjs';
 
+// Rate limit simples em memória (reiniciado a cada reload)
+interface Bucket { count: number; resetAt: number; }
+const buckets = new Map<string, Bucket>();
+const WINDOW_MS = 10 * 60 * 1000; // 10 minutos
+const MAX_REQ = 5;
+const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, username, password, pixKey } = body as { email?: string; username?: string; password?: string; pixKey?: string };
+
+    // Rate limit
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const now = Date.now();
+    const bucket = buckets.get(ip) || { count: 0, resetAt: now + WINDOW_MS };
+    if (now > bucket.resetAt) {
+      bucket.count = 0;
+      bucket.resetAt = now + WINDOW_MS;
+    }
+    bucket.count += 1;
+    buckets.set(ip, bucket);
+    if (bucket.count > MAX_REQ) {
+      const retrySec = Math.ceil((bucket.resetAt - now) / 1000);
+      return new NextResponse(JSON.stringify({ ok: false, error: 'Muitas tentativas, tente mais tarde.' }), {
+        status: 429,
+        headers: {
+          'Retry-After': String(retrySec),
+          'Content-Type': 'application/json',
+        }
+      });
+    }
     if (!email || !username || !password) {
       return NextResponse.json({ ok: false, error: 'Dados incompletos' }, { status: 400 });
+    }
+    if (!usernameRegex.test(username)) {
+      return NextResponse.json({ ok: false, error: 'Username inválido' }, { status: 400 });
     }
     if (password.length < 6) return NextResponse.json({ ok: false, error: 'Senha muito curta' }, { status: 400 });
     const svc = getSupabaseServiceClient();
