@@ -44,12 +44,15 @@ npm run dev
 ## Notas
 - Configure as variáveis de ambiente do NextAuth em `.env.local` quando for ativar provedores.
 - O arquivo `src/lib/types.ts` concentra os modelos de dados principais.
+- Documentação de banco de dados e schema: ver `DATABASE.md` (configuração via Supabase web, sem CLI).
 
 ### Credenciais de teste (banco em memória)
+
 - Admin: email `admin@elox.dev` / senha `admin`
 - Clipador: email `user@elox.dev` / senha `user`
 
 ### Rotas de API disponíveis (iniciais)
+
 - `GET /api/videos` — lista vídeos do usuário (ou todos, se admin)
 - `POST /api/videos` — cria vídeo pendente `{ url, socialMedia: 'tiktok'|'instagram'|'kwai' }`
 - `GET /api/videos/:id` — detalha vídeo (autorização por owner/admin)

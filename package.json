@@ -19,6 +19,7 @@
     "react-chartjs-2": "5.2.0",
     "chart.js": "4.4.4",
     "lucide-react": "0.452.0",
+  "@supabase/supabase-js": "2.44.4",
     "clsx": "2.1.1",
     "class-variance-authority": "0.7.0"
   },
