@@ -61,13 +61,13 @@ CREATE TABLE IF NOT EXISTS public.competition_rewards (
   UNIQUE(competition_id, place)
 );
 
--- Seed inicial (admin e clipador) - dados reais de teste (ajuste emails se já usados)
-INSERT INTO public.profiles (id, email, username, role, password_hash) VALUES
-  ('a_seed_admin_0000_0000_0000_000000000000', 'admin@elox.dev', 'admin', 'admin', '$2a$10$l3xZZ11H8fV/1/y5hvHef.NHSfGNtzWXskFlEwA414rnYAb7aTi3e')
+-- Observação: usar DEFAULT para deixar o banco gerar UUID válidos.
+INSERT INTO public.profiles (email, username, role, password_hash)
+VALUES ('admin@elox.dev', 'admin', 'admin', '$2a$10$l3xZZ11H8fV/1/y5hvHef.NHSfGNtzWXskFlEwA414rnYAb7aTi3e')
 ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO public.profiles (id, email, username, role, password_hash) VALUES
-  ('u_seed_clipador_0000_0000_0000_000000000000', 'user@elox.dev', 'clip_user', 'clipador', '$2a$10$bbRWtbo/r4zOYEbKD.xP7ORlh4NngWVUjZP437r1MeNC1NqHqXse2')
+INSERT INTO public.profiles (email, username, role, password_hash)
+VALUES ('user@elox.dev', 'clip_user', 'clipador', '$2a$10$bbRWtbo/r4zOYEbKD.xP7ORlh4NngWVUjZP437r1MeNC1NqHqXse2')
 ON CONFLICT (email) DO NOTHING;
 
 -- Competição inicial opcional
