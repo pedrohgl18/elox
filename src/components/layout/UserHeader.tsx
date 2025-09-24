@@ -14,7 +14,8 @@ export function UserHeader({ username, email }: UserHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/auth/login' });
+    // Redireciona para a landing sem depender de localhost
+    await signOut({ callbackUrl: '/' });
   };
 
   return (
