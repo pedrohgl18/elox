@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 255 255;
+  --fg: 17 24 39;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+.container {
+  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+/* Animations and fun utilities for Gen Z vibe */
+@layer utilities {
+  /* Marquee horizontal scroll */
+  .animate-marquee {
+    animation: marquee var(--marquee-speed, 28s) linear infinite;
+  }
+  .animate-marquee-fast {
+    animation: marquee var(--marquee-speed, 18s) linear infinite;
+  }
+  .animate-marquee-reverse {
+    animation: marquee-reverse var(--marquee-speed, 28s) linear infinite;
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes marquee-reverse {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0); }
+  }
+
+  /* Equalizer bars */
+  .equalizer-bar {
+    transform-origin: bottom center;
+    animation: equalize 1.2s ease-in-out infinite;
+  }
+  @keyframes equalize {
+    0%, 100% { transform: scaleY(0.2); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* Glow pulse */
+  .glow {
+    box-shadow: 0 0 0 rgba(99, 102, 241, 0.0);
+    transition: box-shadow 300ms ease;
+  }
+  .glow:hover {
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.25);
+  }
+
+  /* Hover lift */
+  .hover-lift { transition: transform 200ms ease; will-change: transform; }
+  .hover-lift:hover { transform: translateY(-2px); }
+}

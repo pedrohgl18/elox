@@ -1,0 +1,158 @@
+"use client";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { formatDateTimeShort } from '@/lib/format';
+
+export default function NovaCompeticaoPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    bannerImageUrl: '',
+    startDate: '',
+    endDate: '',
+    cpm: 5,
+    minViews: 0,
+    allowedPlatforms: ['tiktok','instagram','kwai'] as string[],
+  });
+  const [rewards, setRewards] = useState<Array<{ place: number; amount: number; description?: string }>>([
+    { place: 1, amount: 0 },
+    { place: 2, amount: 0 },
+    { place: 3, amount: 0 },
+  ]);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/competitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          description: form.description || undefined,
+          bannerImageUrl: form.bannerImageUrl || undefined,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          rules: {
+            cpm: Number(form.cpm),
+            minViews: form.minViews ? Number(form.minViews) : undefined,
+            allowedPlatforms: form.allowedPlatforms,
+          },
+          rewards: rewards.filter(r => r.amount > 0),
+          isActive: true,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || 'Falha ao criar competição');
+      }
+      router.push('/admin/competicoes');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-100">Nova competição</h1>
+        <p className="text-slate-400">Defina regras, período e premiações</p>
+      </div>
+      <form onSubmit={onSubmit} className="space-y-4 max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Nome</label>
+            <input required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Banner (URL)</label>
+            <Input placeholder="https://..." value={form.bannerImageUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, bannerImageUrl: e.target.value })} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm text-slate-300 mb-1">Descrição</label>
+            <textarea className="w-full bg-slate-900 text-slate-100 border border-slate-800 rounded-lg h-24 p-3" value={form.description} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Início</label>
+            <input type="datetime-local" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, startDate: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Fim</label>
+            <input type="datetime-local" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.endDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, endDate: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">CPM (R$)</label>
+            <input type="number" step="0.01" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.cpm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, cpm: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Mín. de views (opcional)</label>
+            <input type="number" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.minViews} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, minViews: Number(e.target.value) })} />
+          </div>
+        </div>
+        <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm text-slate-300">Premiações</label>
+            <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+              onClick={() => setRewards(prev => [...prev, { place: prev.length + 1, amount: 0 }])}
+            >Adicionar colocação</button>
+          </div>
+          <div className="space-y-2">
+            {rewards.map((r, idx) => (
+              <div key={idx} className="grid grid-cols-[80px_1fr_auto] gap-3 items-center">
+                <div>
+                  <label className="block text-xs text-slate-400">Posição</label>
+                  <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.place}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = Number(e.target.value);
+                      setRewards(rs => rs.map((x,i) => i===idx ? { ...x, place: v } : x));
+                    }} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">Valor (R$)</label>
+                  <input type="number" step="0.01" min={0} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.amount}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = Number(e.target.value);
+                      setRewards(rs => rs.map((x,i) => i===idx ? { ...x, amount: v } : x));
+                    }} />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+                    onClick={() => setRewards(rs => rs.filter((_,i) => i!==idx))}
+                  >Remover</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm text-slate-300 mb-1">Plataformas permitidas</label>
+          <div className="flex gap-3 text-sm text-slate-200">
+            {['tiktok','instagram','kwai'].map((p) => (
+              <label key={p} className="inline-flex items-center gap-2">
+                <input type="checkbox" className="accent-brand-500" checked={form.allowedPlatforms.includes(p)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const next = e.target.checked
+                    ? [...form.allowedPlatforms, p]
+                    : form.allowedPlatforms.filter((x) => x !== p);
+                  setForm({ ...form, allowedPlatforms: next });
+                }} /> {p}
+              </label>
+            ))}
+          </div>
+        </div>
+        {error && <div className="text-sm text-red-400">{error}</div>}
+        <div className="flex gap-3">
+          <Button type="submit" disabled={loading}>{loading ? 'Salvando…' : 'Criar competição'}</Button>
+          <button type="button" onClick={() => router.back()} className="h-10 px-4 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  );
+}
