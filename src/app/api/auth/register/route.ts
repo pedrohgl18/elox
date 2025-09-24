@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       total_earnings: 0,
       pix_key: sanitizePixKey(pixKey) ?? null,
       password_hash: hash,
-      username_normalized: usernameNorm,
+      // username_normalized é coluna gerada; não incluir no insert
     } as any;
     const { error } = await svc.from('profiles').insert(insert);
     if (error) {
@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
         if (msg.includes('email')) return NextResponse.json({ ok: false, error: 'Email já cadastrado' }, { status: 409 });
         if (msg.includes('username')) return NextResponse.json({ ok: false, error: 'Username indisponível' }, { status: 409 });
         return NextResponse.json({ ok: false, error: 'Registro duplicado' }, { status: 409 });
+      } else if (code === '428C9' || code === '42703') {
+        // 428C9: cannot insert into generated column (ou 42703 missing column)
+        return NextResponse.json({ ok: false, error: 'Schema desatualizado. Reaplique migração de perfis.' }, { status: 500 });
       }
       console.error('Erro Supabase insert profile', error);
       return NextResponse.json({ ok: false, error: 'Falha ao criar usuário' }, { status: 500 });
