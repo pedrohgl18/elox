@@ -78,7 +78,7 @@ export default async function LandingPage() {
       {/* Competição Atual */}
       {active && (
         <section className="w-full max-w-7xl mx-auto mb-8 px-2 sm:px-4">
-          <CompetitionBanner name={active.name} endsAt={active.endDate} prize={(active.rewards?.length ? `R$ ${active.rewards.reduce((sum: number, r: any) => sum + (r.amount||0), 0).toLocaleString('pt-BR')}` : '—')} cpm={active.rules.cpm} />
+          <CompetitionBanner name={active.name} endsAt={active.endDate} prize={(active.rewards?.length ? `R$ ${active.rewards.reduce((sum: number, r: any) => sum + (r.amount||0), 0).toLocaleString('pt-BR')}` : '—')} cpm={active.rules?.cpm} />
         </section>
       )}
 

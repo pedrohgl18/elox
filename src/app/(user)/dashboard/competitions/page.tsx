@@ -45,7 +45,12 @@ export default async function UserCompetitionsPage() {
               <div className="flex-1 min-w-0">
                 <div className="text-slate-100 font-semibold truncate">{c.name}</div>
                 <div className="text-slate-400 text-sm truncate">{c.description || '—'}</div>
-                <div className="text-slate-400 text-xs mt-1">{formatDateShort(c.startDate)} → {formatDateShort(c.endDate)} • CPM R$ {c.rules.cpm.toFixed(2)}</div>
+                <div className="text-slate-400 text-xs mt-1">
+                  {formatDateShort(c.startDate)} → {formatDateShort(c.endDate)}
+                  {typeof c.rules?.cpm === 'number' ? (
+                    <> • CPM R$ {c.rules.cpm.toFixed(2)}</>
+                  ) : null}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                   <Link href={`/competicoes/${c.id}`} className="text-brand-400 hover:text-brand-300 text-sm">Ver detalhes</Link>
                   {(c.status === 'ACTIVE' || c.status === 'SCHEDULED') && (

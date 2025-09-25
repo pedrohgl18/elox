@@ -7,7 +7,7 @@ type Props = {
   name: string;
   endsAt: Date;
   prize: string;
-  cpm: number;
+  cpm?: number;
 };
 
 function useCountdown(target: Date) {
@@ -35,7 +35,12 @@ export default function CompetitionBanner({ name, endsAt, prize, cpm }: Props) {
             <Trophy className="w-4 h-4" /> Competição ativa
           </div>
           <h3 className="text-2xl md:text-3xl font-extrabold text-white mt-2">{name}</h3>
-          <p className="text-sm text-gray-300">Prêmio total: <span className="text-white font-semibold">{prize}</span> • CPM: <span className="text-white font-semibold">R$ {cpm.toFixed(2)}</span></p>
+          <p className="text-sm text-gray-300">
+            Prêmio total: <span className="text-white font-semibold">{prize}</span>
+            {typeof cpm === 'number' ? (
+              <> • CPM: <span className="text-white font-semibold">R$ {cpm.toFixed(2)}</span></>
+            ) : null}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-4 py-3">

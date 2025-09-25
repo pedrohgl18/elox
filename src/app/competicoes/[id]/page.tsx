@@ -18,7 +18,12 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
           {c.bannerImageUrl && <img src={c.bannerImageUrl} alt={c.name} className="h-20 w-36 object-cover rounded-lg border border-slate-800" />}
           <div>
             <h1 className="text-2xl font-bold">{c.name}</h1>
-            <div className="text-slate-400 text-sm">{formatDateShort(c.startDate)} → {formatDateShort(c.endDate)} • CPM R$ {c.rules.cpm.toFixed(2)}</div>
+            <div className="text-slate-400 text-sm">
+              {formatDateShort(c.startDate)} → {formatDateShort(c.endDate)}
+              {typeof c.rules?.cpm === 'number' ? (
+                <> • CPM R$ {c.rules.cpm.toFixed(2)}</>
+              ) : null}
+            </div>
           </div>
         </div>
         {c.description && <p className="text-slate-300">{c.description}</p>}
