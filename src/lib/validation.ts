@@ -42,3 +42,74 @@ export function sanitizePixKey(value: string | undefined | null): string | undef
   const trimmed = value.trim();
   return validatePixKey(trimmed) ? trimmed : undefined;
 }
+
+// ===== Vídeo: validação de URL e detecção de plataforma =====
+
+export type SocialPlatform = 'tiktok' | 'instagram' | 'kwai';
+
+const PLATFORM_HOSTS: Record<SocialPlatform, string[]> = {
+  tiktok: ['tiktok.com', 'vm.tiktok.com', 'm.tiktok.com'],
+  instagram: ['instagram.com', 'www.instagram.com'],
+  kwai: ['kwai.com', 'www.kwai.com', 's.kwai.app'],
+};
+
+export function detectSocialMediaFromUrl(raw: string): SocialPlatform | null {
+  try {
+    const url = new URL(raw.trim());
+    const host = url.hostname.toLowerCase();
+    for (const [platform, hosts] of Object.entries(PLATFORM_HOSTS) as [SocialPlatform, string[]][]) {
+      if (hosts.some(h => host === h || host.endsWith('.' + h))) return platform;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Remove parâmetros de rastreamento comuns e normaliza espaços
+export function normalizeVideoUrl(raw: string): string {
+  try {
+    const trimmed = raw.trim();
+    const u = new URL(trimmed);
+    // remove params de tracking comuns
+    const trackingParams = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','igshid'];
+    trackingParams.forEach(p => u.searchParams.delete(p));
+    // Normaliza trailing slash para alguns padrões (mantém path e search)
+    const normalized = u.toString();
+    return normalized;
+  } catch {
+    return raw.trim();
+  }
+}
+
+export function validateVideoUrl(raw: string, expectedPlatform?: SocialPlatform): { ok: boolean; reason?: string; platform?: SocialPlatform; url: string } {
+  const url = normalizeVideoUrl(raw);
+  let platform = detectSocialMediaFromUrl(url);
+  if (!platform) {
+    return { ok: false, reason: 'URL inválida ou plataforma não suportada', url };
+  }
+  if (expectedPlatform && platform !== expectedPlatform) {
+    return { ok: false, reason: 'A URL não corresponde à rede social selecionada', platform, url };
+  }
+  // Valida caminhos mínimos por plataforma (heurísticas leves)
+  try {
+    const u = new URL(url);
+    const path = u.pathname.toLowerCase();
+    if (platform === 'tiktok') {
+      // exemplos: /@user/video/123, /t/ZTxxxx
+      if (!path.includes('/video/') && !path.startsWith('/t/')) return { ok: true, platform, url }; // aceitar curto (redirect vm.tiktok)
+    }
+    if (platform === 'instagram') {
+      // exemplos: /reel/{id}, /p/{id}
+      if (!path.startsWith('/reel/') && !path.startsWith('/p/')) return { ok: false, reason: 'Link do Instagram deve ser de post/reel', platform, url };
+    }
+    if (platform === 'kwai') {
+      // aceitar domínios de compartilhamento
+      // sem regra rígida
+    }
+  } catch {
+    return { ok: false, reason: 'URL inválida', url };
+  }
+  return { ok: true, platform, url };
+}
+

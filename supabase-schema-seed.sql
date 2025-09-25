@@ -31,6 +31,16 @@ CREATE TABLE IF NOT EXISTS public.videos (
   validated_at timestamptz
 );
 
+-- Evita duplicidade do mesmo link por usuário (case-insensitive)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uq_videos_clipador_url_norm'
+  ) THEN
+    EXECUTE 'CREATE UNIQUE INDEX uq_videos_clipador_url_norm ON public.videos (clipador_id, lower(url))';
+  END IF;
+END$$;
+
 CREATE TABLE IF NOT EXISTS public.payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clipador_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,

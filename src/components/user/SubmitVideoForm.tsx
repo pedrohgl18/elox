@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { VideosAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { detectSocialMediaFromUrl, validateVideoUrl } from '@/lib/validation';
 
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
@@ -20,13 +21,28 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!url || !social) {
-      setError('Informe a URL e a rede social.');
+    if (!url) {
+      setError('Informe a URL do vídeo.');
+      return;
+    }
+    // tenta detectar automaticamente a rede caso não selecionada
+    let chosen = social;
+    if (!chosen) {
+      const detected = detectSocialMediaFromUrl(url);
+      if (detected) chosen = detected;
+    }
+    if (!chosen) {
+      setError('Selecione a rede social ou cole um link válido.');
+      return;
+    }
+    const check = validateVideoUrl(url, chosen as any);
+    if (!check.ok) {
+      setError(check.reason || 'URL inválida');
       return;
     }
     setLoading(true);
     try {
-      await VideosAPI.create({ url, socialMedia: social as any });
+      await VideosAPI.create({ url: check.url, socialMedia: chosen as any });
   setSuccess('Vídeo enviado com sucesso!');
       setUrl('');
       setSocial('');
@@ -48,7 +64,13 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
         <Input
           placeholder="https://..."
           value={url}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.currentTarget.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const value = e.currentTarget.value;
+            setUrl(value);
+            // auto-detect leve
+            const detected = detectSocialMediaFromUrl(value);
+            if (detected) setSocial(detected);
+          }}
         />
       </div>
       <div>
