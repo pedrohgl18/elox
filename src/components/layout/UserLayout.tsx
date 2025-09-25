@@ -48,19 +48,19 @@ export function UserLayout({ children, username, email }: UserLayoutProps) {
         )}
 
         {/* Main Content */}
-  <main className="flex-1 min-h[calc(100vh-4rem)]">
+        <main className="flex-1 min-h-[calc(100vh-4rem)]">
           {/* Mobile Menu Button */}
           <div className="lg:hidden p-4">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
+              className="p-2 rounded-md text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
             >
               <Menu className="h-6 w-6" />
             </button>
           </div>
 
           {/* Page Content */}
-          <div className="p-6">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
             {children ?? null}
           </div>
         </main>

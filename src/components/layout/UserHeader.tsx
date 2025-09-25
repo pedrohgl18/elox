@@ -19,7 +19,7 @@ export function UserHeader({ username, email }: UserHeaderProps) {
   };
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 text-slate-100">
+    <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-3 sm:py-4 text-slate-100">
       <div className="flex items-center justify-between">
         {/* Logo e Título */}
         <div className="flex items-center space-x-4">

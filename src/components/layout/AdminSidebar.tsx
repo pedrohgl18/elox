@@ -14,10 +14,10 @@ const items = [
   { label: 'Configurações', href: '/admin/config', icon: Settings, desc: 'Sistema' },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
   return (
-    <aside className="bg-slate-950 border-r border-slate-800 w-64">
+    <aside className={`${mobile ? 'block' : 'hidden md:block'} bg-slate-950 border-r border-slate-800 w-64`}>
       <nav className="p-4 space-y-2">
         {items.map((item) => {
           const active = pathname === item.href;
