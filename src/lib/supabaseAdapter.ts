@@ -47,7 +47,6 @@ interface CompetitionRow {
   end_date: string; // date
   is_active: boolean;
   status: Competition['status'];
-  cpm: string; // numeric
   allowed_platforms: string[];
   created_at: string;
 }
@@ -116,10 +115,10 @@ function mapCompetition(c: CompetitionRow, rewards: CompetitionRewardRow[]): Com
     endDate: new Date(c.end_date),
     isActive: c.is_active,
     status: c.status,
-  rules: { cpm: Number(c.cpm), allowedPlatforms: c.allowed_platforms as ('tiktok' | 'instagram' | 'kwai')[] },
+  rules: { allowedPlatforms: c.allowed_platforms as ('tiktok' | 'instagram' | 'kwai')[] },
     rewards: rewards
       .sort((a, b) => a.place - b.place)
-      .map(r => ({ place: r.place, amount: Number(r.amount) })),
+      .map(r => ({ fromPlace: r.place, toPlace: r.place, amount: Number(r.amount) } as any)),
   };
 }
 
@@ -370,14 +369,13 @@ export function createSupabaseAdapter() {
           end_date: payload.endDate.toISOString().slice(0,10),
           is_active: payload.isActive ?? true,
           status,
-          cpm: payload.rules?.cpm ?? 0,
           allowed_platforms: payload.rules?.allowedPlatforms ?? ['tiktok','instagram','kwai'],
         };
         const { data, error } = await supabase.from('competitions').insert(insert).select('*').single();
         if (error || !data) throw error;
         const comp = data as CompetitionRow;
         if (payload.rewards?.length) {
-          const rewardsInsert = payload.rewards.map(r => ({ competition_id: comp.id, place: r.place, amount: r.amount }));
+          const rewardsInsert = payload.rewards.map(r => ({ competition_id: comp.id, place: (r as any).fromPlace ?? (r as any).toPlace ?? 1, amount: (r as any).amount }));
           await supabase.from('competition_rewards').insert(rewardsInsert);
         }
         const rewards = await supabase.from('competition_rewards').select('*').eq('competition_id', comp.id);
@@ -389,7 +387,6 @@ export function createSupabaseAdapter() {
         if (data.startDate) update.start_date = data.startDate.toISOString().slice(0,10);
         if (data.endDate) update.end_date = data.endDate.toISOString().slice(0,10);
         if (data.isActive !== undefined) update.is_active = data.isActive;
-        if (data.rules?.cpm !== undefined) update.cpm = data.rules.cpm;
         if (data.rules?.allowedPlatforms) update.allowed_platforms = data.rules.allowedPlatforms;
         if (Object.keys(update).length === 0) return null;
         const { data: updated, error } = await supabase.from('competitions').update(update).eq('id', id).select('*').single();

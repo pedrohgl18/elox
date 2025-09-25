@@ -69,7 +69,7 @@ class InMemoryDB {
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         isActive: true,
         status: 'ACTIVE',
-        rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai','youtube'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
+  rules: { allowedPlatforms: ['tiktok','instagram','kwai','youtube'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
         rewards: [
           { fromPlace: 1, toPlace: 1, amount: 5000 },
           { fromPlace: 2, toPlace: 2, amount: 3000 },
@@ -392,23 +392,14 @@ const memory = new InMemoryDB();
 function attachFinance(api: any) {
   api.finance = api.finance || {};
   api.finance.getUserEarningsSummary = async (userId: string) => {
-    // Soma ganhos estimados usando CPM das competições
-    const videos: Video[] = await api.video.listForUser({ id: userId, role: 'clipador' } as any);
+    // Sem CPM: baseia-se apenas em pagamentos (processados e pendentes)
     let lifetime = 0;
-    for (const v of videos) {
-      if (v.status !== VideoStatus.Approved) continue;
-      let cpm = 0;
-      if (v.competitionId) {
-        const comp = await api.competition.getById(v.competitionId);
-        cpm = comp?.rules?.cpm ?? 0;
-      }
-      lifetime += ((v.views || 0) / 1000) * (cpm || 0);
-    }
-    // Pagamentos
     const allPays: Payment[] = await api.payment.listForUser({ id: userId, role: 'clipador' } as any);
     const processed = allPays.filter((p: Payment) => p.status === PaymentStatus.Processed).reduce((s: number, p: Payment) => s + p.amount, 0);
     const pending = allPays.filter((p: Payment) => p.status === PaymentStatus.Pending).reduce((s: number, p: Payment) => s + p.amount, 0);
-    const available = Math.max(0, lifetime - processed - pending);
+    // lifetime pode ser calculado via somatório histórico ou mantido via outro serviço; como mock, igualamos ao total processado + pendente
+    lifetime = processed + pending;
+    const available = Math.max(0, lifetime - processed - pending); // com base no mock, resulta em 0
     return { lifetime, processed, pending, available };
   };
   return api;

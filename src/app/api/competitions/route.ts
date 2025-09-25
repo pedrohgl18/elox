@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     bannerImageUrl?: string;
     startDate?: string;
     endDate?: string;
-    rules?: { cpm?: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; requiredHashtags?: string[]; requiredMentions?: string[] };
+  rules?: { minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; requiredHashtags?: string[]; requiredMentions?: string[] };
     rewards?: Array<{ fromPlace: number; toPlace: number; amount: number; platform?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; description?: string }>;
     isActive?: boolean;
     assets?: { audioLinks?: Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }> };
@@ -36,7 +36,6 @@ export async function POST(req: Request) {
     startDate: new Date(body.startDate),
     endDate: new Date(body.endDate),
     rules: {
-      cpm: body.rules?.cpm != null ? Number(body.rules.cpm) : undefined,
       minViews: body.rules?.minViews != null ? Number(body.rules.minViews) : undefined,
       allowedPlatforms: body.rules?.allowedPlatforms,
       requiredHashtags: body.rules?.requiredHashtags,

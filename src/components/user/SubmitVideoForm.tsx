@@ -104,7 +104,6 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
                   : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800'
               }`}
               onClick={() => setCompetitionId(c.id)}
-              title={`${c.name} — CPM R$ ${Number(c.rules?.cpm ?? 0).toFixed(2)}`}
             >
               {c.name}
             </button>

@@ -65,7 +65,6 @@ export interface Competition {
   isActive: boolean; // controle manual para pausar/cancelar
   status?: CompetitionStatus; // redundante mas útil para filtros; pode ser derivado por datas
   rules: {
-    cpm?: number; // Custo Por Mil visualizações (opcional a partir de agora)
     minViews?: number; // opcional: visualizações mínimas para elegibilidade
     allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; // redes válidas
     requiredHashtags?: string[]; // hashtags obrigatórias da campanha

@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     startDate: string;
     endDate: string;
     isActive: boolean;
-    rules: { cpm: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; requiredHashtags?: string[]; requiredMentions?: string[] };
+  rules: { minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; requiredHashtags?: string[]; requiredMentions?: string[] };
     rewards: Array<{ place: number; amount: number; description?: string }>;
     assets: { audioLinks?: Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }> };
     phases: Array<{ name: string; startDate: string; endDate: string; description?: string }>;

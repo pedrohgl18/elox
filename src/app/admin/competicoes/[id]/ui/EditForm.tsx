@@ -12,14 +12,13 @@ export default function EditForm({ competition }: { competition: Competition }) 
     bannerImageUrl: competition.bannerImageUrl || '',
     startDate: new Date(competition.startDate).toISOString().slice(0,16),
     endDate: new Date(competition.endDate).toISOString().slice(0,16),
-    cpm: competition.rules.cpm,
     minViews: competition.rules.minViews || 0,
-    allowedPlatforms: competition.rules.allowedPlatforms || ['tiktok','instagram','kwai'],
+  allowedPlatforms: competition.rules.allowedPlatforms || ['tiktok','instagram','kwai','youtube'],
     isActive: competition.isActive,
     requiredHashtags: (competition.rules.requiredHashtags || []).join(' '),
     requiredMentions: (competition.rules.requiredMentions || []).join(' '),
   });
-  const [rewards, setRewards] = useState<Array<{ place: number; amount: number; description?: string }>>(competition.rewards || []);
+  const [rewards, setRewards] = useState<Array<{ fromPlace: number; toPlace: number; amount: number; description?: string }>>((competition.rewards || []).map((r: any) => ({ fromPlace: r.fromPlace ?? r.place ?? 1, toPlace: r.toPlace ?? r.place ?? r.fromPlace ?? 1, amount: r.amount, description: r.description })));
   const [audioLinks, setAudioLinks] = useState<Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }>>(competition.assets?.audioLinks || []);
   const [phases, setPhases] = useState<Array<{ name: string; startDate: string; endDate: string; description?: string }>>((competition.phases || []).map(ph => ({
     name: ph.name,
@@ -45,7 +44,6 @@ export default function EditForm({ competition }: { competition: Competition }) 
           endDate: form.endDate,
           isActive: form.isActive,
           rules: {
-            cpm: Number(form.cpm),
             minViews: form.minViews ? Number(form.minViews) : undefined,
             allowedPlatforms: form.allowedPlatforms,
             requiredHashtags: form.requiredHashtags.trim() ? form.requiredHashtags.split(/[ ,]+/).filter(Boolean) : [],
@@ -91,10 +89,7 @@ export default function EditForm({ competition }: { competition: Competition }) 
           <label className="block text-sm text-slate-300 mb-1">Fim</label>
           <input type="datetime-local" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.endDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, endDate: e.target.value })} />
         </div>
-        <div>
-          <label className="block text-sm text-slate-300 mb-1">CPM (R$)</label>
-          <input type="number" step="0.01" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.cpm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, cpm: Number(e.target.value) })} />
-        </div>
+        
         <div>
           <label className="block text-sm text-slate-300 mb-1">Mín. de views (opcional)</label>
           <input type="number" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.minViews} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, minViews: Number(e.target.value) })} />
@@ -116,18 +111,26 @@ export default function EditForm({ competition }: { competition: Competition }) 
         <div className="flex items-center justify-between mb-3">
           <label className="block text-sm text-slate-300">Premiações</label>
           <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
-            onClick={() => setRewards(prev => [...prev, { place: (prev[prev.length-1]?.place ?? 0) + 1, amount: 0 }])}
+            onClick={() => setRewards(prev => [...prev, { fromPlace: (prev[prev.length-1]?.toPlace ?? 0) + 1, toPlace: (prev[prev.length-1]?.toPlace ?? 0) + 1, amount: 0 }])}
           >Adicionar colocação</button>
         </div>
         <div className="space-y-2">
           {rewards.map((r, idx) => (
-            <div key={idx} className="grid grid-cols-[80px_1fr_auto] gap-3 items-center">
+            <div key={idx} className="grid grid-cols-[100px_100px_1fr_auto] gap-3 items-center">
               <div>
-                <label className="block text-xs text-slate-400">Posição</label>
-                <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.place}
+                <label className="block text-xs text-slate-400">De (posição)</label>
+                <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.fromPlace}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const v = Number(e.target.value);
-                    setRewards(rs => rs.map((x,i) => i===idx ? { ...x, place: v } : x));
+                    setRewards(rs => rs.map((x,i) => i===idx ? { ...x, fromPlace: v } : x));
+                  }} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">Até (posição)</label>
+                <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.toPlace}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const v = Number(e.target.value);
+                    setRewards(rs => rs.map((x,i) => i===idx ? { ...x, toPlace: v } : x));
                   }} />
               </div>
               <div>
@@ -150,10 +153,10 @@ export default function EditForm({ competition }: { competition: Competition }) 
       <div>
         <label className="block text-sm text-slate-300 mb-1">Plataformas permitidas</label>
         <div className="flex gap-3 text-sm text-slate-200">
-          {(['tiktok','instagram','kwai'] as Array<'tiktok' | 'instagram' | 'kwai'>).map((p) => (
+          {(['tiktok','instagram','kwai','youtube'] as Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>).map((p) => (
             <label key={p} className="inline-flex items-center gap-2">
               <input type="checkbox" className="accent-brand-500" checked={form.allowedPlatforms.includes(p)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const next = e.target.checked ? [...form.allowedPlatforms, p] : (form.allowedPlatforms.filter((x) => x !== p) as Array<'tiktok' | 'instagram' | 'kwai'>);
+                const next = e.target.checked ? [...form.allowedPlatforms, p] : (form.allowedPlatforms.filter((x) => x !== p) as Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>);
                 setForm({ ...form, allowedPlatforms: next });
               }} /> {p}
             </label>

@@ -45,13 +45,7 @@ export default async function AdminCompeticoesPage() {
               <div className="flex-1 min-w-0">
                 <div className="text-slate-100 font-semibold truncate">{c.name}</div>
                 <div className="text-slate-400 text-sm truncate">{c.description || '—'}</div>
-                <div className="text-slate-400 text-xs mt-1">
-                  {formatDateShort(c.startDate)} → {formatDateShort(c.endDate)}
-                  {typeof c.rules?.cpm === 'number' ? (
-                    <> • CPM R$ {c.rules.cpm.toFixed(2)}</>
-                  ) : null}
-                  {' '}• Status: <span className="text-slate-200">{st}</span>
-                </div>
+                <div className="text-slate-400 text-xs mt-1">{formatDateShort(c.startDate)} → {formatDateShort(c.endDate)} • Status: <span className="text-slate-200">{st}</span></div>
               </div>
               <div className="flex items-center gap-2">
                 <Link href={`/admin/competicoes/${c.id}`} className="inline-flex items-center bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-lg h-10 px-3">
