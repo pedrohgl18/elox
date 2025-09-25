@@ -37,8 +37,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (db.notifications?.create) {
       await db.notifications.create({ userId: ownerId, type, title, message });
     }
-  } catch (e) {
-    console.error('Falha ao criar notificação:', e);
-  }
+  } catch {}
   return NextResponse.json(result);
 }

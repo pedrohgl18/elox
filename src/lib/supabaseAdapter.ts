@@ -128,6 +128,7 @@ function mapCompetition(c: CompetitionRow, rewards: CompetitionRewardRow[]): Com
 export function createSupabaseAdapter() {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
+  const svc = getSupabaseServiceClient() || supabase;
 
   return {
     auth: {
@@ -161,7 +162,7 @@ export function createSupabaseAdapter() {
     },
     notifications: {
       listForUser: async (userId: string, opts?: { unreadOnly?: boolean; limit?: number }) => {
-        let query = supabase
+        let query = svc
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
@@ -181,7 +182,7 @@ export function createSupabaseAdapter() {
         } satisfies Notification));
       },
       create: async (payload: { userId: string; type: NotificationType; title: string; message?: string }) => {
-        const { data, error } = await supabase
+        const { data, error } = await svc
           .from('notifications')
           .insert({ user_id: payload.userId, type: payload.type, title: payload.title, message: payload.message ?? null })
           .select('*')
@@ -200,7 +201,7 @@ export function createSupabaseAdapter() {
         return n;
       },
       markRead: async (id: string) => {
-        const { data, error } = await supabase
+        const { data, error } = await svc
           .from('notifications')
           .update({ read_at: new Date().toISOString() })
           .eq('id', id)
@@ -220,7 +221,7 @@ export function createSupabaseAdapter() {
         return n;
       },
       markAllRead: async (userId: string) => {
-        await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', userId).is('read_at', null);
+        await svc.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', userId).is('read_at', null);
         return true;
       },
     },
@@ -340,13 +341,43 @@ export function createSupabaseAdapter() {
         return mapVideo(data as VideoRow);
       },
       approve: async (id: string) => {
-        const { data, error } = await supabase.from('videos').update({ status: 'APPROVED', validated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+        const { data, error } = await supabase
+          .from('videos')
+          .update({ status: 'APPROVED', validated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select('*')
+          .single();
         if (error || !data) return null;
+        // Cria notificação para o dono do vídeo
+        try {
+          const row = data as VideoRow;
+          await svc.from('notifications').insert({
+            user_id: row.clipador_id,
+            type: 'video_approved',
+            title: 'Vídeo aprovado',
+            message: 'Seu vídeo foi aprovado e começará a contar métricas.',
+          });
+        } catch {}
         return mapVideo(data as VideoRow);
       },
       reject: async (id: string) => {
-        const { data, error } = await supabase.from('videos').update({ status: 'REJECTED', validated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+        const { data, error } = await supabase
+          .from('videos')
+          .update({ status: 'REJECTED', validated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select('*')
+          .single();
         if (error || !data) return null;
+        // Cria notificação para o dono do vídeo
+        try {
+          const row = data as VideoRow;
+          await svc.from('notifications').insert({
+            user_id: row.clipador_id,
+            type: 'video_rejected',
+            title: 'Vídeo rejeitado',
+            message: 'Seu vídeo foi rejeitado. Revise as diretrizes e tente novamente.',
+          });
+        } catch {}
         return mapVideo(data as VideoRow);
       },
     },
