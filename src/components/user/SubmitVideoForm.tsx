@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
-import { VideosAPI } from '@/lib/api';
+import { CompetitionsAPI, VideosAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { detectSocialMediaFromUrl, validateVideoUrl } from '@/lib/validation';
 import { SocialPicker } from './SocialPicker';
+import { SocialEmbed } from './SocialEmbed';
 
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
@@ -17,6 +17,13 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [competitions, setCompetitions] = useState<any[]>([]);
+  const [competitionId, setCompetitionId] = useState<string | ''>('');
+
+  useEffect(() => {
+    // carrega campanhas em que o usuário está inscrito
+    CompetitionsAPI.listEnrolled().then(setCompetitions).catch(() => setCompetitions([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,10 +50,11 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
     }
     setLoading(true);
     try {
-      await VideosAPI.create({ url: check.url, socialMedia: chosen as any });
+      await VideosAPI.create({ url: check.url, socialMedia: chosen as any, competitionId: competitionId || null });
   setSuccess('Vídeo enviado com sucesso!');
       setUrl('');
       setSocial('');
+      setCompetitionId('');
       onSubmitted?.();
   router.refresh();
     } catch (err: any) {
@@ -71,6 +79,10 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
             // auto-detect leve
             const detected = detectSocialMediaFromUrl(value);
             if (detected) setSocial(detected);
+            // Emite evento global para a sidebar de preview
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent<string>('elox:upload-preview', { detail: value }));
+            }
           }}
         />
       </div>
@@ -80,14 +92,38 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
       </div>
       {url && detectSocialMediaFromUrl(url) && (
         <div className="rounded-md border border-slate-800 bg-slate-900 p-3 text-sm text-slate-300">
-          <div className="flex items-center justify-between">
-            <span>Prévia reconhecida: {detectSocialMediaFromUrl(url)?.toUpperCase()}</span>
+          <div className="flex items-center justify-between mb-2">
+            <span>Preview</span>
             <a href={url} target="_blank" rel="noreferrer" className="text-brand-400 underline">Abrir link</a>
           </div>
-          {/* Placeholder miniatura: no futuro podemos gerar snapshot ou embed */}
-          <div className="mt-2 h-32 w-full rounded bg-slate-800/60 flex items-center justify-center text-slate-500">
-            Miniatura indisponível
+          <div className="bg-black/20 rounded-md overflow-hidden">
+            <SocialEmbed url={url} />
           </div>
+        </div>
+      )}
+
+      {/* Seletor de Campanha atual (somente as que o usuário está inscrito) */}
+      {competitions.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm font-medium">Selecionar Campanha</label>
+          <div className="flex flex-wrap gap-2">
+            {competitions.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`px-3 py-1.5 rounded-lg border text-sm ${
+                  competitionId === c.id
+                    ? 'border-brand-400 bg-brand-400/10 text-brand-300'
+                    : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+                }`}
+                onClick={() => setCompetitionId(competitionId === c.id ? '' : c.id)}
+                title={`${c.name} — CPM R$ ${Number(c.rules?.cpm ?? 0).toFixed(2)}`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">Opcional: escolha a campanha para contabilizar este envio.</p>
         </div>
       )}
       <div className="flex justify-end gap-2">

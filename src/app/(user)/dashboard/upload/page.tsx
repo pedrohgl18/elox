@@ -7,7 +7,8 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
-import { Upload, Video, TrendingUp, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Video, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { PreviewSidebar } from '@/components/user/UploadPreviewSidebar';
 import { Video as VideoType } from '@/lib/types';
 
 export default async function UploadPage() {
@@ -116,40 +117,8 @@ export default async function UploadPage() {
 
           {/* Sidebar com Informações */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Status de Upload Rápido */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">Status do Sistema</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">TikTok</span>
-                    <div className="flex items-center space-x-1">
-                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs text-green-600">Online</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Instagram</span>
-                    <div className="flex items-center space-x-1">
-                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs text-green-600">Online</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Kwai</span>
-                    <div className="flex items-center space-x-1">
-                      <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-xs text-yellow-600">Lento</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Preview em tempo real */}
+            <PreviewSidebar />
 
             {/* Estatísticas Rápidas */}
             <Card>

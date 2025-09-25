@@ -17,7 +17,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const VideosAPI = {
   list: () => api<any[]>('/api/videos'),
-  create: (payload: { url: string; socialMedia: 'tiktok' | 'instagram' | 'kwai' }) =>
+  create: (payload: { url: string; socialMedia: 'tiktok' | 'instagram' | 'kwai'; competitionId?: string | null }) =>
     api('/api/videos', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
@@ -28,6 +28,7 @@ export const PaymentsAPI = {
 
 export const CompetitionsAPI = {
   list: () => api<any[]>('/api/competitions'),
+  listEnrolled: () => api<any[]>('/api/competitions/enrolled'),
   create: (payload: any) => api('/api/competitions', { method: 'POST', body: JSON.stringify(payload) }),
   get: (id: string) => api<any>(`/api/competitions/${id}`),
   patch: (id: string, payload: any) => api(`/api/competitions/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),

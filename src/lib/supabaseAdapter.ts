@@ -26,6 +26,7 @@ interface VideoRow {
   status: VideoStatus;
   submitted_at: string;
   validated_at: string | null;
+  competition_id: string | null;
 }
 
 interface PaymentRow {
@@ -90,6 +91,7 @@ function mapVideo(v: VideoRow): Video {
     status: v.status,
     submittedAt: new Date(v.submitted_at),
     validatedAt: v.validated_at ? new Date(v.validated_at) : undefined,
+    competitionId: v.competition_id ?? undefined,
   };
 }
 
@@ -169,8 +171,9 @@ export function createSupabaseAdapter() {
         if (error || !data) return null;
         return mapVideo(data as VideoRow);
       },
-      create: async (user: AuthUserRecord, url: string, social: Video['socialMedia']) => {
-        const insert = { clipador_id: user.id, url, social_media: social };
+      create: async (user: AuthUserRecord, url: string, social: Video['socialMedia'], competitionId?: string | null) => {
+        const insert: any = { clipador_id: user.id, url, social_media: social };
+        if (competitionId) insert.competition_id = competitionId;
         const { data, error } = await supabase.from('videos').insert(insert).select('*').single();
         if (error || !data) throw error;
         return mapVideo(data as VideoRow);
@@ -221,6 +224,38 @@ export function createSupabaseAdapter() {
           });
         }
         return (data as CompetitionRow[]).map(c => mapCompetition(c, rewardsByCompetition.get(c.id) || []));
+      },
+      listEnrolledForUser: async (clipadorId: string) => {
+        // competições em que o usuário está inscrito (todas as datas)
+        const { data, error } = await supabase
+          .from('competition_participants')
+          .select('competition_id, competitions(*)')
+          .eq('clipador_id', clipadorId);
+        if (error || !data) return [];
+        const comps: CompetitionRow[] = (data as any[])
+          .map((row) => row.competitions)
+          .filter(Boolean);
+        // buscar prêmios de todas
+        const ids = comps.map(c => c.id);
+        const rewardsResp = ids.length ? await supabase.from('competition_rewards').select('*').in('competition_id', ids) : { data: [], error: null } as any;
+        const rewardsByCompetition = new Map<string, CompetitionRewardRow[]>();
+        if (!rewardsResp.error && rewardsResp.data) {
+          (rewardsResp.data as CompetitionRewardRow[]).forEach(r => {
+            const arr = rewardsByCompetition.get(r.competition_id) || [];
+            arr.push(r);
+            rewardsByCompetition.set(r.competition_id, arr);
+          });
+        }
+        return comps.map(c => mapCompetition(c, rewardsByCompetition.get(c.id) || []));
+      },
+      isUserEnrolled: async (clipadorId: string, competitionId: string) => {
+        const { data, error } = await supabase
+          .from('competition_participants')
+          .select('competition_id')
+          .eq('clipador_id', clipadorId)
+          .eq('competition_id', competitionId)
+          .maybeSingle();
+        return !!(data && !error);
       },
       getById: async (id: string) => {
         const { data, error } = await supabase.from('competitions').select('*').eq('id', id).single();

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const authUser = await db.auth.getById((session.user as any).id as string);
   if (!authUser || authUser.role !== 'clipador') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const body = await req.json().catch(() => null) as { url?: string; socialMedia?: 'tiktok' | 'instagram' | 'kwai' } | null;
+  const body = await req.json().catch(() => null) as { url?: string; socialMedia?: 'tiktok' | 'instagram' | 'kwai'; competitionId?: string | null } | null;
   if (!body?.url || !body.socialMedia) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
 
   // valida e normaliza URL
@@ -55,7 +55,15 @@ export async function POST(req: Request) {
   if (dup) return NextResponse.json({ error: 'Este vídeo já foi enviado.' }, { status: 409 });
 
   try {
-    const v = await db.video.create(authUser, validation.url, body.socialMedia);
+    // Se competitionId fornecido, validar que o usuário está inscrito
+    let competitionId: string | null | undefined = body.competitionId ?? null;
+    if (competitionId) {
+      const enrolled = await db.competition.isUserEnrolled?.(authUser.id, competitionId);
+      if (!enrolled) {
+        return NextResponse.json({ error: 'Você não está inscrito nesta campanha.' }, { status: 400 });
+      }
+    }
+    const v = await db.video.create(authUser, validation.url, body.socialMedia, competitionId);
     return NextResponse.json(v, { status: 201 });
   } catch (err: any) {
     const msg = (err?.message || '').toLowerCase();

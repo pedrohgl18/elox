@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS public.videos (
   earnings numeric(12,2) DEFAULT 0,
   status text CHECK (status IN ('PENDING','APPROVED','REJECTED')) DEFAULT 'PENDING',
   submitted_at timestamptz DEFAULT now(),
-  validated_at timestamptz
+  validated_at timestamptz,
+  competition_id uuid REFERENCES public.competitions(id)
 );
 
 -- Evita duplicidade do mesmo link por usuário (case-insensitive)
@@ -70,6 +71,14 @@ CREATE TABLE IF NOT EXISTS public.competition_rewards (
   place integer NOT NULL,
   amount numeric(12,2) NOT NULL,
   UNIQUE(competition_id, place)
+);
+
+-- Inscrições dos usuários nas competições
+CREATE TABLE IF NOT EXISTS public.competition_participants (
+  competition_id uuid REFERENCES public.competitions(id) ON DELETE CASCADE,
+  clipador_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  joined_at timestamptz DEFAULT now(),
+  PRIMARY KEY (competition_id, clipador_id)
 );
 
 -- Índice único para enforcement case-insensitive (evita username duplicado apenas por caixa)

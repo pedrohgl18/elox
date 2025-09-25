@@ -33,6 +33,7 @@ export interface Video {
   status: VideoStatus;
   submittedAt: Date;
   validatedAt?: Date;
+  competitionId?: string; // campanha à qual o vídeo pertence (opcional)
 }
 
 export interface Payment {
@@ -67,4 +68,10 @@ export interface Competition {
     allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; // redes válidas
   };
   rewards?: CompetitionReward[]; // premiação por colocação
+}
+
+export interface CompetitionParticipant {
+  competitionId: string;
+  clipadorId: string;
+  joinedAt: Date;
 }
