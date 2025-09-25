@@ -11,7 +11,7 @@ type Feature = {
 
 const features: Feature[] = [
   { icon: Upload, title: "Envio Rápido de Vídeos", desc: "Faça upload dos seus clipes em segundos com validação automática de links." },
-  { icon: BarChart3, title: "Métricas em Tempo Real", desc: "Acompanhe views, CPM, ganhos e tendências com gráficos claros." },
+  { icon: BarChart3, title: "Métricas em Tempo Real", desc: "Acompanhe views, ganhos e tendências com gráficos claros." },
   { icon: Trophy, title: "Ranking Competitivo", desc: "Suba no ranking semanal e desbloqueie bônus por performance." },
   { icon: Wallet, title: "Pagamentos via PIX", desc: "Solicite e receba seus pagamentos semanalmente, sem burocracia." },
   { icon: ShieldCheck, title: "Validação Antifraude", desc: "Sistema de revisão e verificação para garantir justiça e qualidade." },

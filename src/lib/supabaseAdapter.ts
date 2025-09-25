@@ -54,8 +54,11 @@ interface CompetitionRow {
 interface CompetitionRewardRow {
   id: string;
   competition_id: string;
-  place: number;
+  from_place: number;
+  to_place: number;
   amount: string;
+  platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube' | null;
+  description: string | null;
 }
 
 function mapProfile(p: ProfileRow): AuthUserRecord {
@@ -115,10 +118,10 @@ function mapCompetition(c: CompetitionRow, rewards: CompetitionRewardRow[]): Com
     endDate: new Date(c.end_date),
     isActive: c.is_active,
     status: c.status,
-  rules: { allowedPlatforms: c.allowed_platforms as ('tiktok' | 'instagram' | 'kwai')[] },
+  rules: { allowedPlatforms: c.allowed_platforms as any },
     rewards: rewards
-      .sort((a, b) => a.place - b.place)
-      .map(r => ({ fromPlace: r.place, toPlace: r.place, amount: Number(r.amount) } as any)),
+      .sort((a, b) => a.from_place - b.from_place)
+      .map(r => ({ fromPlace: r.from_place, toPlace: r.to_place, amount: Number(r.amount), platform: r.platform ?? undefined, description: r.description ?? undefined })),
   };
 }
 
@@ -307,7 +310,7 @@ export function createSupabaseAdapter() {
       list: async () => {
         const { data, error } = await supabase.from('competitions').select('*');
         if (error || !data) return [];
-        const rewardsResp = await supabase.from('competition_rewards').select('*');
+  const rewardsResp = await supabase.from('competition_rewards').select('*');
         const rewardsByCompetition = new Map<string, CompetitionRewardRow[]>();
         if (!rewardsResp.error && rewardsResp.data) {
           (rewardsResp.data as CompetitionRewardRow[]).forEach(r => {
@@ -330,7 +333,7 @@ export function createSupabaseAdapter() {
           .filter(Boolean);
         // buscar prêmios de todas
         const ids = comps.map(c => c.id);
-        const rewardsResp = ids.length ? await supabase.from('competition_rewards').select('*').in('competition_id', ids) : { data: [], error: null } as any;
+  const rewardsResp = ids.length ? await supabase.from('competition_rewards').select('*').in('competition_id', ids) : { data: [], error: null } as any;
         const rewardsByCompetition = new Map<string, CompetitionRewardRow[]>();
         if (!rewardsResp.error && rewardsResp.data) {
           (rewardsResp.data as CompetitionRewardRow[]).forEach(r => {
@@ -375,7 +378,14 @@ export function createSupabaseAdapter() {
         if (error || !data) throw error;
         const comp = data as CompetitionRow;
         if (payload.rewards?.length) {
-          const rewardsInsert = payload.rewards.map(r => ({ competition_id: comp.id, place: (r as any).fromPlace ?? (r as any).toPlace ?? 1, amount: (r as any).amount }));
+          const rewardsInsert = payload.rewards.map((r: any) => ({
+            competition_id: comp.id,
+            from_place: r.fromPlace,
+            to_place: r.toPlace,
+            amount: r.amount,
+            platform: r.platform ?? null,
+            description: r.description ?? null,
+          }));
           await supabase.from('competition_rewards').insert(rewardsInsert);
         }
         const rewards = await supabase.from('competition_rewards').select('*').eq('competition_id', comp.id);
@@ -387,7 +397,7 @@ export function createSupabaseAdapter() {
         if (data.startDate) update.start_date = data.startDate.toISOString().slice(0,10);
         if (data.endDate) update.end_date = data.endDate.toISOString().slice(0,10);
         if (data.isActive !== undefined) update.is_active = data.isActive;
-        if (data.rules?.allowedPlatforms) update.allowed_platforms = data.rules.allowedPlatforms;
+  if (data.rules?.allowedPlatforms) update.allowed_platforms = data.rules.allowedPlatforms;
         if (Object.keys(update).length === 0) return null;
         const { data: updated, error } = await supabase.from('competitions').update(update).eq('id', id).select('*').single();
         if (error || !updated) return null;

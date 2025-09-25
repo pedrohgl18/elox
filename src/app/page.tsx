@@ -29,24 +29,24 @@ export default async function LandingPage() {
   const active = comps.find((c: Competition) => now >= c.startDate.getTime() && now <= c.endDate.getTime() && c.isActive);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-950 to-black flex flex-col items-center px-4">
+    <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-950 to-black flex flex-col items-center px-3 sm:px-4">
       <PublicHeader />
       <Hero
         title="EloX: Monetize seus vídeos, dispute rankings e faça parte da comunidade!"
         description="O ecossistema completo para criadores de conteúdo de vídeo. Transforme seus clipes em ganhos reais, participe de competições e eventos, e conquiste seu espaço no ranking dos melhores clipadores."
       >
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-8 w-full sm:w-auto">
           {isLogged ? (
             <Link href="/dashboard">
-              <Button className="w-full sm:w-auto text-lg px-8 py-3">Ir para o Dashboard</Button>
+              <Button className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3">Ir para o Dashboard</Button>
             </Link>
           ) : (
             <>
               <Link href="/auth/login">
-                <Button className="w-full sm:w-auto text-lg px-8 py-3">Entrar</Button>
+                <Button className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3">Entrar</Button>
               </Link>
               <Link href="/auth/register">
-                <Button variant="outline" className="w-full sm:w-auto text-lg px-8 py-3">Criar Conta</Button>
+                <Button variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3">Criar Conta</Button>
               </Link>
             </>
           )}
@@ -64,7 +64,7 @@ export default async function LandingPage() {
         <FeatureCard
           icon={<PlayCircle className="h-8 w-8 text-indigo-500" />}
           title="Monetização Real"
-          description="Receba por cada mil visualizações, acompanhe seus ganhos e solicite pagamentos direto pelo painel."
+          description="Receba por visualizações e premiações, acompanhe seus ganhos e solicite pagamentos direto pelo painel."
           color="border-indigo-200"
         />
         <FeatureCard
@@ -99,7 +99,7 @@ export default async function LandingPage() {
 
       {/* Como funciona */}
   <section id="como-funciona" className="w-full max-w-6xl mx-auto mb-16 px-2 sm:px-4">
-  <h2 className="text-2xl font-bold text-indigo-300 mb-6 text-center">Como funciona?</h2>
+  <h2 className="text-xl sm:text-2xl font-bold text-indigo-300 mb-5 sm:mb-6 text-center">Como funciona?</h2>
         <div className="grid gap-6 md:grid-cols-4">
           <StepCard step={1} title="Cadastre-se" description="Crie sua conta e acesse o painel exclusivo para clipadores." />
           <StepCard step={2} title="Envie seus vídeos" description="Publique clipes virais das redes sociais e acompanhe suas métricas." />
@@ -110,7 +110,7 @@ export default async function LandingPage() {
 
       {/* Depoimentos */}
   <section id="depoimentos" className="w-full max-w-6xl mx-auto mb-16 px-2 sm:px-4">
-  <h2 className="text-2xl font-bold text-indigo-300 mb-6 text-center">Depoimentos de Clipadores</h2>
+  <h2 className="text-xl sm:text-2xl font-bold text-indigo-300 mb-5 sm:mb-6 text-center">Depoimentos de Clipadores</h2>
         <div className="grid gap-6 md:grid-cols-3">
           <TestimonialCard
             name="Lucas Viral"
@@ -145,13 +145,13 @@ export default async function LandingPage() {
       </section>
 
       {/* Para quem é */}
-      <section className="w-full max-w-7xl mx-auto mb-4 px-2 sm:px-4">
+      <section id="para-quem-e" className="w-full max-w-7xl mx-auto mb-4 px-2 sm:px-4">
         <Audience />
       </section>
 
       {/* FAQ */}
       <section className="w-full max-w-6xl mx-auto mb-16 px-2 sm:px-4">
-  <h2 className="text-2xl font-bold text-indigo-300 mb-6 text-center">Perguntas Frequentes</h2>
+  <h2 className="text-xl sm:text-2xl font-bold text-indigo-300 mb-5 sm:mb-6 text-center">Perguntas Frequentes</h2>
         <FAQ
           items={[
             { q: 'Como eu ganho dinheiro na EloX?', a: 'Você envia seus vídeos e recebe com base em visualizações e regras das competições. Solicite pagamentos via PIX no painel.' },
@@ -162,16 +162,16 @@ export default async function LandingPage() {
       </section>
 
       {/* Call to Action */}
-  <section className="w-full py-12 text-center bg-white/5 border border-white/10 rounded-xl mb-8 px-2 sm:px-4">
-    <h2 className="text-3xl font-bold text-indigo-300 mb-4">Pronto para monetizar seus vídeos?</h2>
-    <p className="text-gray-300 mb-6">Junte-se à EloX e transforme seu conteúdo em ganhos reais. Comece agora e faça parte do ranking dos melhores!</p>
+  <section className="w-full py-10 sm:py-12 text-center bg-white/5 border border-white/10 rounded-xl mb-8 px-2 sm:px-4">
+    <h2 className="text-2xl sm:text-3xl font-bold text-indigo-300 mb-3 sm:mb-4">Pronto para monetizar seus vídeos?</h2>
+    <p className="text-sm sm:text-base text-gray-300 mb-5 sm:mb-6">Junte-se à EloX e transforme seu conteúdo em ganhos reais. Comece agora e faça parte do ranking dos melhores!</p>
         {isLogged ? (
           <Link href="/dashboard">
-            <Button size="lg" className="px-10 py-4 text-xl">Ir para o Dashboard</Button>
+            <Button size="lg" className="px-8 sm:px-10 py-4 text-lg sm:text-xl">Ir para o Dashboard</Button>
           </Link>
         ) : (
           <Link href="/auth/register">
-            <Button size="lg" className="px-10 py-4 text-xl">Criar Conta Grátis</Button>
+            <Button size="lg" className="px-8 sm:px-10 py-4 text-lg sm:text-xl">Criar Conta Grátis</Button>
           </Link>
         )}
       </section>
