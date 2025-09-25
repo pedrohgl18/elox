@@ -100,8 +100,10 @@ export function validateVideoUrl(raw: string, expectedPlatform?: SocialPlatform)
       if (!path.includes('/video/') && !path.startsWith('/t/')) return { ok: true, platform, url }; // aceitar curto (redirect vm.tiktok)
     }
     if (platform === 'instagram') {
-      // exemplos: /reel/{id}, /p/{id}
-      if (!path.startsWith('/reel/') && !path.startsWith('/p/')) return { ok: false, reason: 'Link do Instagram deve ser de post/reel', platform, url };
+      // exemplos: /reel/{id}, /reels/{id}, /p/{id}
+      if (!path.startsWith('/reel/') && !path.startsWith('/reels/') && !path.startsWith('/p/')) {
+        return { ok: false, reason: 'Link do Instagram deve ser de post/reel', platform, url };
+      }
     }
     if (platform === 'kwai') {
       // aceitar domínios de compartilhamento

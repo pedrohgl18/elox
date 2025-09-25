@@ -36,12 +36,12 @@ export default async function UploadPage() {
       <div className="space-y-6">
         {/* Header da Página */}
         <div className="flex items-center space-x-3">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <Upload className="h-6 w-6 text-blue-600" />
+          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-700/20 to-slate-800/40">
+            <Upload className="h-6 w-6 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Enviar Vídeo</h1>
-            <p className="text-gray-600">Envie seus vídeos e comece a ganhar dinheiro</p>
+            <h1 className="text-3xl font-bold text-slate-100">Enviar Vídeo</h1>
+            <p className="text-slate-400">Envie seus vídeos e comece a ganhar dinheiro</p>
           </div>
         </div>
 
@@ -50,8 +50,8 @@ export default async function UploadPage() {
           <div className="lg:col-span-2">
             <Card className="mb-8">
               <CardHeader>
-                <h2 className="text-xl font-semibold">Enviar Novo Vídeo</h2>
-                <p className="text-sm text-gray-600">
+                <h2 className="text-xl font-semibold text-slate-100">Enviar Novo Vídeo</h2>
+                <p className="text-sm text-slate-400">
                   Cole o link do seu vídeo das redes sociais suportadas
                 </p>
               </CardHeader>
@@ -65,7 +65,7 @@ export default async function UploadPage() {
               <CardHeader>
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="h-5 w-5 text-green-500" />
-                  <h3 className="text-lg font-semibold">Dicas para Maximizar seus Ganhos</h3>
+                  <h3 className="text-lg font-semibold text-slate-100">Dicas para Maximizar seus Ganhos</h3>
                 </div>
               </CardHeader>
               <CardContent>
@@ -73,8 +73,8 @@ export default async function UploadPage() {
                   <div className="flex items-start space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                     <div>
-                      <h4 className="font-medium">Conteúdo Viral</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-slate-200">Conteúdo Viral</h4>
+                      <p className="text-sm text-slate-400">
                         Vídeos com mais engajamento (likes, comentários, compartilhamentos) têm maior potencial de ganho
                       </p>
                     </div>
@@ -83,8 +83,8 @@ export default async function UploadPage() {
                   <div className="flex items-start space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                     <div>
-                      <h4 className="font-medium">Timing é Tudo</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-slate-200">Timing é Tudo</h4>
+                      <p className="text-sm text-slate-400">
                         Envie vídeos que estão em tendência. Quanto mais cedo você enviar, maior a chance de aprovação
                       </p>
                     </div>
@@ -93,8 +93,8 @@ export default async function UploadPage() {
                   <div className="flex items-start space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                     <div>
-                      <h4 className="font-medium">Diversifique as Redes</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-slate-200">Diversifique as Redes</h4>
+                      <p className="text-sm text-slate-400">
                         Envie vídeos de TikTok, Instagram e Kwai para maximizar suas oportunidades
                       </p>
                     </div>
@@ -103,8 +103,8 @@ export default async function UploadPage() {
                   <div className="flex items-start space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                     <div>
-                      <h4 className="font-medium">Qualidade de Link</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-slate-200">Qualidade de Link</h4>
+                      <p className="text-sm text-slate-400">
                         Certifique-se de que o link está correto e o vídeo está público
                       </p>
                     </div>
