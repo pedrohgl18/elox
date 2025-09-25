@@ -113,16 +113,16 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
               <tbody className="divide-y divide-slate-800 bg-slate-950">
                 {pageItems.map(({ v, c }) => (
                   <tr key={v.id} className="group hover:bg-slate-900">
-                    <td className="px-3 sm:px-4 py-2 text-slate-100">
+                    <td className="px-3 sm:px-4 py-2 text-slate-100 align-top">
                       <div className="flex flex-col">
                         <span className="font-medium">{c.username}</span>
                         <span className="text-xs text-slate-400">{c.email}</span>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300">{v.socialMedia.toUpperCase()}</td>
-                    <td className="px-3 sm:px-4 py-2"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.socialMedia.toUpperCase()}</td>
+                    <td className="px-3 sm:px-4 py-2 break-words max-w-[260px] sm:max-w-none"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
                     <td className="px-3 sm:px-4 py-2"><StatusBadge label={v.status} /></td>
                     <td className="px-3 sm:px-4 py-2 flex flex-wrap gap-2">
                       {v.status !== 'APPROVED' && (

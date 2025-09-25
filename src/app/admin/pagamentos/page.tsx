@@ -74,11 +74,11 @@ export default async function AdminPagamentosPage() {
               <tbody className="divide-y divide-slate-800 bg-slate-950">
                 {payments.map((p) => (
                   <tr key={p.id} className="group hover:bg-slate-900">
-                    <td className="px-3 sm:px-4 py-2 text-slate-100">{p.clipadorId}</td>
-                    <td className="px-3 sm:px-4 py-2 font-medium text-green-400">{formatCurrencyBRL(p.amount)}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-100 break-words max-w-[180px] sm:max-w-none">{p.clipadorId}</td>
+                    <td className="px-3 sm:px-4 py-2 font-medium text-green-400 whitespace-nowrap">{formatCurrencyBRL(p.amount)}</td>
                     <td className="px-3 sm:px-4 py-2"><StatusBadge label={p.status} /></td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300">{new Date(p.requestedAt).toLocaleString('pt-BR')}</td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300">{p.processedAt ? new Date(p.processedAt).toLocaleString('pt-BR') : '-'}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{new Date(p.requestedAt).toLocaleString('pt-BR')}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{p.processedAt ? new Date(p.processedAt).toLocaleString('pt-BR') : '-'}</td>
                     <td className="px-3 sm:px-4 py-2 flex flex-wrap gap-2">
                       {p.status !== 'PROCESSED' && (
                         <form action={async () => { 'use server'; await db.payment.markProcessed(p.id); }}>
