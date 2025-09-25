@@ -65,10 +65,10 @@ export default async function UserCompetitionsPage() {
       <div className="p-6 space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Competições</h1>
-          <p className="text-slate-400">Veja competições abertas, concluídas e agendadas</p>
+          <p className="text-slate-400">Veja competições ativas, concluídas e agendadas</p>
         </div>
 
-        <Section title="Abertas" items={byStatus.ACTIVE} />
+        <Section title="Ativas" items={byStatus.ACTIVE} />
         <Section title="Agendadas" items={byStatus.SCHEDULED} />
         <Section title="Concluídas" items={byStatus.COMPLETED} />
       </div>

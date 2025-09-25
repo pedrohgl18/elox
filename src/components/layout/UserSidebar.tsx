@@ -26,6 +26,12 @@ const menuItems = [
     description: 'Visão geral'
   },
   {
+    label: 'Competições',
+    icon: Trophy,
+    href: '/dashboard/competitions',
+    description: 'Ativas, agendadas e concluídas'
+  },
+  {
     label: 'Meus Vídeos',
     icon: Video,
     href: '/dashboard/videos',
@@ -48,12 +54,6 @@ const menuItems = [
     icon: Trophy,
     href: '/dashboard/ranking',
     description: 'Posição no ranking'
-  },
-  {
-    label: 'Competições',
-    icon: Trophy,
-    href: '/dashboard/competitions',
-    description: 'Abertas, agendadas e concluídas'
   },
   {
     label: 'Estatísticas',
