@@ -11,11 +11,11 @@ export default async function AdminReportsPage() {
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Relatórios</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <h1 className="text-2xl font-bold mb-4 text-slate-100">Relatórios</h1>
       <Card>
         <CardHeader>Em breve</CardHeader>
-        <CardContent>Relatórios detalhados de performance, pagamentos e compliance.</CardContent>
+        <CardContent className="text-slate-300">Relatórios detalhados de performance, pagamentos e compliance.</CardContent>
       </Card>
     </div>
   );
