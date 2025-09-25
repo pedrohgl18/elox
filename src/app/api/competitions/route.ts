@@ -20,13 +20,13 @@ export async function POST(req: Request) {
     bannerImageUrl?: string;
     startDate?: string;
     endDate?: string;
-    rules?: { cpm?: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; requiredHashtags?: string[]; requiredMentions?: string[] };
-    rewards?: Array<{ place: number; amount: number; description?: string }>;
+    rules?: { cpm?: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; requiredHashtags?: string[]; requiredMentions?: string[] };
+    rewards?: Array<{ fromPlace: number; toPlace: number; amount: number; platform?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; description?: string }>;
     isActive?: boolean;
     assets?: { audioLinks?: Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }> };
     phases?: Array<{ name: string; startDate: string; endDate: string; description?: string }>;
   } | null;
-  if (!body?.name || !body.startDate || !body.endDate || !body.rules?.cpm) {
+  if (!body?.name || !body.startDate || !body.endDate) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
   const comp = await db.competition.create({
@@ -36,11 +36,11 @@ export async function POST(req: Request) {
     startDate: new Date(body.startDate),
     endDate: new Date(body.endDate),
     rules: {
-      cpm: Number(body.rules.cpm),
-      minViews: body.rules.minViews ? Number(body.rules.minViews) : undefined,
-      allowedPlatforms: body.rules.allowedPlatforms,
-      requiredHashtags: body.rules.requiredHashtags,
-      requiredMentions: body.rules.requiredMentions,
+      cpm: body.rules?.cpm != null ? Number(body.rules.cpm) : undefined,
+      minViews: body.rules?.minViews != null ? Number(body.rules.minViews) : undefined,
+      allowedPlatforms: body.rules?.allowedPlatforms,
+      requiredHashtags: body.rules?.requiredHashtags,
+      requiredMentions: body.rules?.requiredMentions,
     },
     rewards: body.rewards,
     isActive: body.isActive,

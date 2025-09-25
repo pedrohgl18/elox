@@ -69,11 +69,11 @@ class InMemoryDB {
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         isActive: true,
         status: 'ACTIVE',
-  rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai','youtube'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
+        rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai','youtube'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
         rewards: [
-          { place: 1, amount: 5000 },
-          { place: 2, amount: 3000 },
-          { place: 3, amount: 2000 },
+          { fromPlace: 1, toPlace: 1, amount: 5000 },
+          { fromPlace: 2, toPlace: 2, amount: 3000 },
+          { fromPlace: 3, toPlace: 3, amount: 2000 },
         ],
         assets: {
           audioLinks: [
@@ -179,7 +179,7 @@ class InMemoryDB {
   competition = {
   list: async () => this.competitions,
     getById: async (id: string) => this.competitions.find((c) => c.id === id) || null,
-    create: async (payload: Omit<Competition, 'id' | 'isActive' | 'status'> & { isActive?: boolean; status?: Competition['status'] }) => {
+  create: async (payload: Omit<Competition, 'id' | 'isActive' | 'status'> & { isActive?: boolean; status?: Competition['status'] }) => {
       const now = Date.now();
       const status: Competition['status'] = payload.status
         ? payload.status

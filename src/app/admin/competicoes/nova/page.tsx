@@ -14,18 +14,15 @@ export default function NovaCompeticaoPage() {
     bannerImageUrl: '',
     startDate: '',
     endDate: '',
-    cpm: 5,
     minViews: 0,
-    allowedPlatforms: ['tiktok','instagram','kwai'] as string[],
+    allowedPlatforms: ['tiktok','instagram','kwai','youtube'] as string[],
     requiredHashtags: '' as string, // separado por espaço ou vírgula
     requiredMentions: '' as string, // separado por espaço ou vírgula
   });
   const [audioLinks, setAudioLinks] = useState<Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }>>([]);
   const [phases, setPhases] = useState<Array<{ name: string; startDate: string; endDate: string; description?: string }>>([]);
-  const [rewards, setRewards] = useState<Array<{ place: number; amount: number; description?: string }>>([
-    { place: 1, amount: 0 },
-    { place: 2, amount: 0 },
-    { place: 3, amount: 0 },
+  const [rewards, setRewards] = useState<Array<{ fromPlace: number; toPlace: number; amount: number; platform?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; description?: string }>>([
+    { fromPlace: 1, toPlace: 3, amount: 0 },
   ]);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,13 +41,14 @@ export default function NovaCompeticaoPage() {
           startDate: form.startDate,
           endDate: form.endDate,
           rules: {
-            cpm: Number(form.cpm),
             minViews: form.minViews ? Number(form.minViews) : undefined,
             allowedPlatforms: form.allowedPlatforms,
             requiredHashtags: form.requiredHashtags.trim() ? form.requiredHashtags.split(/[ ,]+/).filter(Boolean) : undefined,
             requiredMentions: form.requiredMentions.trim() ? form.requiredMentions.split(/[ ,]+/).filter(Boolean) : undefined,
           },
-          rewards: rewards.filter(r => r.amount > 0),
+          rewards: rewards
+            .filter(r => r.amount > 0 && r.fromPlace >= 1 && r.toPlace >= r.fromPlace)
+            .map(r => ({ fromPlace: Number(r.fromPlace), toPlace: Number(r.toPlace), amount: Number(r.amount), platform: r.platform || undefined })),
           isActive: true,
           assets: { audioLinks: audioLinks.length ? audioLinks : undefined },
           phases: phases.length ? phases : undefined,
@@ -96,10 +94,7 @@ export default function NovaCompeticaoPage() {
             <label className="block text-sm text-slate-300 mb-1">Fim</label>
             <input type="datetime-local" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.endDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, endDate: e.target.value })} />
           </div>
-          <div>
-            <label className="block text-sm text-slate-300 mb-1">CPM (R$)</label>
-            <input type="number" step="0.01" required className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.cpm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, cpm: Number(e.target.value) })} />
-          </div>
+          {/* Campo CPM removido conforme solicitado */}
           <div>
             <label className="block text-sm text-slate-300 mb-1">Mín. de views (opcional)</label>
             <input type="number" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.minViews} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, minViews: Number(e.target.value) })} />
@@ -121,27 +116,44 @@ export default function NovaCompeticaoPage() {
           <div className="flex items-center justify-between mb-3">
             <label className="block text-sm text-slate-300">Premiações</label>
             <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
-              onClick={() => setRewards(prev => [...prev, { place: prev.length + 1, amount: 0 }])}
-            >Adicionar colocação</button>
+              onClick={() => setRewards(prev => [...prev, { fromPlace: 1, toPlace: 1, amount: 0 }])}
+            >Adicionar faixa</button>
           </div>
           <div className="space-y-2">
             {rewards.map((r, idx) => (
-              <div key={idx} className="grid grid-cols-[80px_1fr_auto] gap-3 items-center">
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-[200px_200px_1fr_220px_auto] gap-3 items-end">
                 <div>
-                  <label className="block text-xs text-slate-400">Posição</label>
-                  <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.place}
+                  <label className="block text-xs text-slate-400">De (posição)</label>
+                  <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.fromPlace}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const v = Number(e.target.value);
-                      setRewards(rs => rs.map((x,i) => i===idx ? { ...x, place: v } : x));
+                      setRewards(rs => rs.map((x,i) => i===idx ? { ...x, fromPlace: v } : x));
+                    }} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">Até (posição)</label>
+                  <input type="number" min={1} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.toPlace}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = Number(e.target.value);
+                      setRewards(rs => rs.map((x,i) => i===idx ? { ...x, toPlace: v } : x));
                     }} />
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400">Valor (R$)</label>
-                  <input type="number" step="0.01" min={0} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.amount}
+                  <input type="number" step={0.01} min={0} className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.amount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const v = Number(e.target.value);
                       setRewards(rs => rs.map((x,i) => i===idx ? { ...x, amount: v } : x));
                     }} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">Plataforma (opcional)</label>
+                  <select className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={r.platform || ''}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRewards(rs => rs.map((x,i) => i===idx ? { ...x, platform: (e.target.value || undefined) as any } : x))}
+                  >
+                    <option value="">Todas</option>
+                    {(['tiktok','instagram','kwai','youtube'] as const).map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </div>
                 <div className="flex items-end gap-2">
                   <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
@@ -151,11 +163,16 @@ export default function NovaCompeticaoPage() {
               </div>
             ))}
           </div>
+          <div className="mt-2">
+            <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+              onClick={() => setRewards(prev => [...prev, { fromPlace: 1, toPlace: 1, amount: 0 }])}
+            >Adicionar faixa</button>
+          </div>
         </div>
         <div>
           <label className="block text-sm text-slate-300 mb-1">Plataformas permitidas</label>
           <div className="flex gap-3 text-sm text-slate-200">
-            {['tiktok','instagram','kwai'].map((p) => (
+            {['tiktok','instagram','kwai','youtube'].map((p) => (
               <label key={p} className="inline-flex items-center gap-2">
                 <input type="checkbox" className="accent-brand-500" checked={form.allowedPlatforms.includes(p)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   const next = e.target.checked

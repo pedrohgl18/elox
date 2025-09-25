@@ -46,8 +46,10 @@ export interface Payment {
 }
 
 export interface CompetitionReward {
-  place: number; // 1 para campeão, 2, 3...
-  amount: number; // valor em moeda local (centavos ou reais, conforme política)
+  fromPlace: number; // início do intervalo (ex: 1)
+  toPlace: number;   // fim do intervalo (ex: 3)
+  amount: number;    // valor por vencedor na faixa
+  platform?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; // opcional: premiação específica por plataforma
   description?: string; // ex: bônus, brinde, etc.
 }
 
@@ -63,9 +65,9 @@ export interface Competition {
   isActive: boolean; // controle manual para pausar/cancelar
   status?: CompetitionStatus; // redundante mas útil para filtros; pode ser derivado por datas
   rules: {
-    cpm: number; // Custo Por Mil visualizações
+    cpm?: number; // Custo Por Mil visualizações (opcional a partir de agora)
     minViews?: number; // opcional: visualizações mínimas para elegibilidade
-  allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; // redes válidas
+    allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; // redes válidas
     requiredHashtags?: string[]; // hashtags obrigatórias da campanha
     requiredMentions?: string[]; // @menções obrigatórias
   };
