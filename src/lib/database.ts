@@ -21,6 +21,7 @@ class InMemoryDB {
   videos: Video[] = [];
   payments: Payment[] = [];
   competitions: Competition[] = [];
+  participants: { competitionId: string; clipadorId: string; joinedAt: Date }[] = [];
 
   constructor() {
     // IDs fixos para estabilidade da sessão em ambiente de dev (banco em memória)
@@ -198,6 +199,18 @@ class InMemoryDB {
       const before = this.competitions.length;
       this.competitions = this.competitions.filter((x) => x.id !== id);
       return this.competitions.length < before;
+    },
+    listEnrolledForUser: async (clipadorId: string) => {
+      const enrolledIds = new Set(this.participants.filter(p => p.clipadorId === clipadorId).map(p => p.competitionId));
+      return this.competitions.filter(c => enrolledIds.has(c.id));
+    },
+    isUserEnrolled: async (clipadorId: string, competitionId: string) => {
+      return this.participants.some(p => p.clipadorId === clipadorId && p.competitionId === competitionId);
+    },
+    enroll: async (clipadorId: string, competitionId: string) => {
+      const exists = this.participants.some(p => p.clipadorId === clipadorId && p.competitionId === competitionId);
+      if (!exists) this.participants.push({ clipadorId, competitionId, joinedAt: new Date() });
+      return true;
     },
   };
 

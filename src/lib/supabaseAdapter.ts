@@ -306,6 +306,13 @@ export function createSupabaseAdapter() {
       remove: async (id: string) => {
         const { error } = await supabase.from('competitions').delete().eq('id', id);
         return !error;
+      },
+      enroll: async (clipadorId: string, competitionId: string) => {
+        // Upsert para evitar erro de PK
+        const { error } = await supabase
+          .from('competition_participants')
+          .upsert({ clipador_id: clipadorId, competition_id: competitionId }, { onConflict: 'competition_id,clipador_id' });
+        return !error;
       }
     },
     admin: {

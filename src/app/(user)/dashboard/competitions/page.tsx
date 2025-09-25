@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
+import { CompetitionEnrollButton } from '@/components/user/CompetitionEnrollButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +46,11 @@ export default async function UserCompetitionsPage() {
                 <div className="text-slate-100 font-semibold truncate">{c.name}</div>
                 <div className="text-slate-400 text-sm truncate">{c.description || '—'}</div>
                 <div className="text-slate-400 text-xs mt-1">{formatDateShort(c.startDate)} → {formatDateShort(c.endDate)} • CPM R$ {c.rules.cpm.toFixed(2)}</div>
-                <div className="mt-3">
+                <div className="mt-3 flex items-center gap-3">
                   <Link href={`/competicoes/${c.id}`} className="text-brand-400 hover:text-brand-300 text-sm">Ver detalhes</Link>
+                  {(c.status === 'ACTIVE' || c.status === 'SCHEDULED') && (
+                    <CompetitionEnrollButton competitionId={c.id} />
+                  )}
                 </div>
               </div>
             </div>

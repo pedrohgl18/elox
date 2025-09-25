@@ -2,6 +2,7 @@ import React from 'react';
 import { db } from '@/lib/database';
 import { notFound } from 'next/navigation';
 import { formatDateShort } from '@/lib/format';
+import { CompetitionEnrollButton } from '@/components/user/CompetitionEnrollButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,11 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
         {c.rules?.allowedPlatforms && (
           <div className="text-sm text-slate-400">Plataformas: {c.rules.allowedPlatforms.join(', ')}</div>
         )}
+
+        {/* CTA de inscrição */}
+        <div className="pt-2">
+          <CompetitionEnrollButton competitionId={c.id} />
+        </div>
       </div>
     </div>
   );
