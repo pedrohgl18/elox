@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { VideosAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { detectSocialMediaFromUrl, validateVideoUrl } from '@/lib/validation';
+import { SocialPicker } from './SocialPicker';
 
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
@@ -75,18 +76,20 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium">Rede Social</label>
-        <Select
-          value={social}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-            setSocial(e.currentTarget.value as 'tiktok' | 'instagram' | 'kwai' | '')
-          }
-        >
-          <option value="">Selecione</option>
-          <option value="tiktok">TikTok</option>
-          <option value="instagram">Instagram</option>
-          <option value="kwai">Kwai</option>
-        </Select>
+        <SocialPicker value={social} onChange={setSocial as any} />
       </div>
+      {url && detectSocialMediaFromUrl(url) && (
+        <div className="rounded-md border border-slate-800 bg-slate-900 p-3 text-sm text-slate-300">
+          <div className="flex items-center justify-between">
+            <span>Prévia reconhecida: {detectSocialMediaFromUrl(url)?.toUpperCase()}</span>
+            <a href={url} target="_blank" rel="noreferrer" className="text-brand-400 underline">Abrir link</a>
+          </div>
+          {/* Placeholder miniatura: no futuro podemos gerar snapshot ou embed */}
+          <div className="mt-2 h-32 w-full rounded bg-slate-800/60 flex items-center justify-center text-slate-500">
+            Miniatura indisponível
+          </div>
+        </div>
+      )}
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar Vídeo'}
