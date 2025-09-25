@@ -20,9 +20,11 @@ export async function POST(req: Request) {
     bannerImageUrl?: string;
     startDate?: string;
     endDate?: string;
-    rules?: { cpm?: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'> };
+    rules?: { cpm?: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; requiredHashtags?: string[]; requiredMentions?: string[] };
     rewards?: Array<{ place: number; amount: number; description?: string }>;
     isActive?: boolean;
+    assets?: { audioLinks?: Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }> };
+    phases?: Array<{ name: string; startDate: string; endDate: string; description?: string }>;
   } | null;
   if (!body?.name || !body.startDate || !body.endDate || !body.rules?.cpm) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
@@ -37,9 +39,13 @@ export async function POST(req: Request) {
       cpm: Number(body.rules.cpm),
       minViews: body.rules.minViews ? Number(body.rules.minViews) : undefined,
       allowedPlatforms: body.rules.allowedPlatforms,
+      requiredHashtags: body.rules.requiredHashtags,
+      requiredMentions: body.rules.requiredMentions,
     },
     rewards: body.rewards,
     isActive: body.isActive,
+    assets: body.assets,
+    phases: body.phases?.map((ph) => ({ ...ph, startDate: new Date(ph.startDate as string), endDate: new Date(ph.endDate as string) } as any)),
   });
   return NextResponse.json(comp, { status: 201 });
 }

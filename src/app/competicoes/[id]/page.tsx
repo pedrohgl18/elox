@@ -38,6 +38,43 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
         {c.rules?.allowedPlatforms && (
           <div className="text-sm text-slate-400">Plataformas: {c.rules.allowedPlatforms.join(', ')}</div>
         )}
+        {((c.rules?.requiredHashtags && c.rules.requiredHashtags.length) || (c.rules?.requiredMentions && c.rules.requiredMentions.length)) && (
+          <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+            <h2 className="font-semibold mb-2">Requisitos de Publicação</h2>
+            {c.rules?.requiredHashtags?.length ? (
+              <div className="text-sm text-slate-300 mb-1">Hashtags obrigatórias: {c.rules.requiredHashtags.map((h: string) => <span key={h} className="mr-2 text-emerald-300">{h}</span>)}</div>
+            ) : null}
+            {c.rules?.requiredMentions?.length ? (
+              <div className="text-sm text-slate-300">Menções obrigatórias: {c.rules.requiredMentions.map((m: string) => <span key={m} className="mr-2 text-emerald-300">{m}</span>)}</div>
+            ) : null}
+          </div>
+        )}
+        {c.assets?.audioLinks && c.assets.audioLinks.length > 0 && (
+          <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+            <h2 className="font-semibold mb-2">Áudios Oficiais</h2>
+            <ul className="text-sm text-slate-300 space-y-1">
+              {c.assets.audioLinks.map((a: { platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }, idx: number) => (
+                <li key={idx}>
+                  <a className="text-emerald-300 hover:underline" href={a.url} target="_blank" rel="noreferrer">
+                    {a.label || `Áudio ${a.platform}`}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {Array.isArray(c.phases) && c.phases.length > 0 && (
+          <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+            <h2 className="font-semibold mb-2">Fases</h2>
+            <ul className="text-sm text-slate-300 space-y-1">
+              {c.phases.map((ph: { name: string; startDate: Date; endDate: Date; description?: string }, idx: number) => (
+                <li key={idx}>
+                  <span className="font-medium">{ph.name}:</span> {formatDateShort(ph.startDate)} → {formatDateShort(ph.endDate)} {ph.description ? `• ${ph.description}` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* CTA de inscrição */}
         <div className="pt-2">

@@ -67,11 +67,20 @@ class InMemoryDB {
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         isActive: true,
         status: 'ACTIVE',
-        rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai'] },
+        rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
         rewards: [
           { place: 1, amount: 5000 },
           { place: 2, amount: 3000 },
           { place: 3, amount: 2000 },
+        ],
+        assets: {
+          audioLinks: [
+            { platform: 'tiktok', url: 'https://www.tiktok.com/music/0000', label: 'Áudio oficial TikTok' },
+          ],
+        },
+        phases: [
+          { name: 'Antecipação', startDate: new Date(Date.now() - 24*60*60*1000), endDate: new Date(), description: 'Pré-campanha' },
+          { name: 'Campanha', startDate: new Date(), endDate: new Date(Date.now() + 7 * 24*60*60*1000) }
         ],
       });
     }
@@ -180,13 +189,15 @@ class InMemoryDB {
         rewards: payload.rewards ?? [],
         ...payload,
         rules: { allowedPlatforms: ['tiktok','instagram','kwai'], ...(payload.rules || {}) },
+        assets: payload.assets,
+        phases: payload.phases,
       } as Competition;
       this.competitions.push(c);
       return c;
     },
     patch: async (
       id: string,
-      data: Partial<Pick<Competition, 'name' | 'startDate' | 'endDate' | 'isActive' | 'rules'>>,
+      data: Partial<Pick<Competition, 'name' | 'startDate' | 'endDate' | 'isActive' | 'rules' | 'assets' | 'phases'>>,
     ) => {
       const c = this.competitions.find((x) => x.id === id);
       if (!c) return null;

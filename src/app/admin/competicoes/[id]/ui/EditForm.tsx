@@ -16,8 +16,17 @@ export default function EditForm({ competition }: { competition: Competition }) 
     minViews: competition.rules.minViews || 0,
     allowedPlatforms: competition.rules.allowedPlatforms || ['tiktok','instagram','kwai'],
     isActive: competition.isActive,
+    requiredHashtags: (competition.rules.requiredHashtags || []).join(' '),
+    requiredMentions: (competition.rules.requiredMentions || []).join(' '),
   });
   const [rewards, setRewards] = useState<Array<{ place: number; amount: number; description?: string }>>(competition.rewards || []);
+  const [audioLinks, setAudioLinks] = useState<Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }>>(competition.assets?.audioLinks || []);
+  const [phases, setPhases] = useState<Array<{ name: string; startDate: string; endDate: string; description?: string }>>((competition.phases || []).map(ph => ({
+    name: ph.name,
+    startDate: new Date(ph.startDate).toISOString().slice(0,16),
+    endDate: new Date(ph.endDate).toISOString().slice(0,16),
+    description: ph.description || '',
+  })));
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -39,8 +48,12 @@ export default function EditForm({ competition }: { competition: Competition }) 
             cpm: Number(form.cpm),
             minViews: form.minViews ? Number(form.minViews) : undefined,
             allowedPlatforms: form.allowedPlatforms,
+            requiredHashtags: form.requiredHashtags.trim() ? form.requiredHashtags.split(/[ ,]+/).filter(Boolean) : [],
+            requiredMentions: form.requiredMentions.trim() ? form.requiredMentions.split(/[ ,]+/).filter(Boolean) : [],
           },
           rewards,
+          assets: { audioLinks },
+          phases,
         }),
       });
       if (!res.ok) {
@@ -85,6 +98,18 @@ export default function EditForm({ competition }: { competition: Competition }) 
         <div>
           <label className="block text-sm text-slate-300 mb-1">Mín. de views (opcional)</label>
           <input type="number" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.minViews} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, minViews: Number(e.target.value) })} />
+        </div>
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Hashtags obrigatórias</label>
+            <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.requiredHashtags} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, requiredHashtags: e.target.value })} />
+            <p className="text-xs text-slate-500 mt-1">Separe por espaço ou vírgula</p>
+          </div>
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Menções obrigatórias</label>
+            <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={form.requiredMentions} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, requiredMentions: e.target.value })} />
+            <p className="text-xs text-slate-500 mt-1">Separe por espaço ou vírgula</p>
+          </div>
         </div>
       </div>
       <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
@@ -132,6 +157,69 @@ export default function EditForm({ competition }: { competition: Competition }) 
                 setForm({ ...form, allowedPlatforms: next });
               }} /> {p}
             </label>
+          ))}
+        </div>
+      </div>
+      <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm text-slate-300">Links de Áudio</label>
+          <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+            onClick={() => setAudioLinks(prev => [...prev, { platform: 'tiktok', url: '' }])}
+          >Adicionar link</button>
+        </div>
+        <div className="space-y-2">
+          {audioLinks.map((a, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-[140px_1fr_180px_auto] gap-3 items-center">
+              <div>
+                <label className="block text-xs text-slate-400">Plataforma</label>
+                <select className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.platform}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, platform: e.target.value as any } : x))}
+                >
+                  {(['tiktok','instagram','kwai','youtube'] as const).map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">URL</label>
+                <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, url: e.target.value } : x))} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">Rótulo (opcional)</label>
+                <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.label || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, label: e.target.value } : x))} />
+              </div>
+              <div className="flex items-end">
+                <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800" onClick={() => setAudioLinks(rs => rs.filter((_,i) => i!==idx))}>Remover</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm text-slate-300">Fases (opcional)</label>
+          <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+            onClick={() => setPhases(prev => [...prev, { name: '', startDate: '', endDate: '' }])}
+          >Adicionar fase</button>
+        </div>
+        <div className="space-y-2">
+          {phases.map((ph, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_200px_200px_auto] gap-3 items-center">
+              <div>
+                <label className="block text-xs text-slate-400">Nome da fase</label>
+                <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={ph.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhases(rs => rs.map((x,i) => i===idx ? { ...x, name: e.target.value } : x))} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">Início</label>
+                <input type="datetime-local" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={ph.startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhases(rs => rs.map((x,i) => i===idx ? { ...x, startDate: e.target.value } : x))} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">Fim</label>
+                <input type="datetime-local" className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={ph.endDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhases(rs => rs.map((x,i) => i===idx ? { ...x, endDate: e.target.value } : x))} />
+              </div>
+              <div className="flex items-end">
+                <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800" onClick={() => setPhases(rs => rs.filter((_,i) => i!==idx))}>Remover</button>
+              </div>
+            </div>
           ))}
         </div>
       </div>

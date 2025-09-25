@@ -66,8 +66,23 @@ export interface Competition {
     cpm: number; // Custo Por Mil visualizações
     minViews?: number; // opcional: visualizações mínimas para elegibilidade
     allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; // redes válidas
+    requiredHashtags?: string[]; // hashtags obrigatórias da campanha
+    requiredMentions?: string[]; // @menções obrigatórias
   };
   rewards?: CompetitionReward[]; // premiação por colocação
+  assets?: {
+    audioLinks?: Array<{
+      platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube';
+      url: string;
+      label?: string; // ex: "Áudio oficial TikTok"
+    }>;
+  };
+  phases?: Array<{
+    name: string; // Ex: "Antecipação", "Campanha"
+    startDate: Date;
+    endDate: Date;
+    description?: string;
+  }>; // fases opcionais
 }
 
 export interface CompetitionParticipant {

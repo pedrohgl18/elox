@@ -22,13 +22,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     startDate: string;
     endDate: string;
     isActive: boolean;
-    rules: { cpm: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'> };
+    rules: { cpm: number; minViews?: number; allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; requiredHashtags?: string[]; requiredMentions?: string[] };
     rewards: Array<{ place: number; amount: number; description?: string }>;
+    assets: { audioLinks?: Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }> };
+    phases: Array<{ name: string; startDate: string; endDate: string; description?: string }>;
   }> | null;
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   const payload: any = { ...body };
   if (payload.startDate) payload.startDate = new Date(payload.startDate);
   if (payload.endDate) payload.endDate = new Date(payload.endDate);
+  if (payload.phases) payload.phases = payload.phases.map((ph: any) => ({ ...ph, startDate: new Date(ph.startDate), endDate: new Date(ph.endDate) }));
   const updated = await db.competition.patch(params.id, payload);
   if (!updated) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
   return NextResponse.json(updated);
