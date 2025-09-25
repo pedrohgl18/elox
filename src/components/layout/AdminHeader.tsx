@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Shield, Menu } from 'lucide-react';
 import Link from 'next/link';
 
 export function AdminHeader({ onOpenMenu }: { onOpenMenu?: () => void }) {
@@ -15,10 +15,7 @@ export function AdminHeader({ onOpenMenu }: { onOpenMenu?: () => void }) {
             className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
             aria-label="Abrir menu"
           >
-            {/* Usando o ícone do escudo como placeholder de menu? Melhor usar três linhas, mas mantendo stack oficial lucide opcional */}
-            <span className="block h-0.5 w-5 bg-current" />
-            <span className="block h-0.5 w-5 bg-current mt-1" />
-            <span className="block h-0.5 w-5 bg-current mt-1" />
+            <Menu className="h-5 w-5" />
           </button>
           <Link href="/admin" className="flex items-center gap-2">
             <div className="h-7 w-7 rounded bg-gradient-to-br from-brand-500 to-brand-700 grid place-items-center shadow-[0_0_20px_rgba(16,185,129,0.25)]">

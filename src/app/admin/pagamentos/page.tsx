@@ -22,7 +22,7 @@ export default async function AdminPagamentosPage() {
   const processed = payments.filter(p => p.status === 'PROCESSED');
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
       <h1 className="text-2xl font-bold text-slate-100">Pagamentos</h1>
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -63,23 +63,23 @@ export default async function AdminPagamentosPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800 text-sm">
+            <table className="min-w-full divide-y divide-slate-800 text-sm sm:text-[0.95rem]">
               <thead className="bg-gradient-to-r from-slate-950 via-emerald-900/10 to-slate-950">
                 <tr>
                   {['Clipador','Valor','Status','Solicitado','Processado','Ações'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold text-slate-200">{h}</th>
+                    <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-950">
                 {payments.map((p) => (
                   <tr key={p.id} className="group hover:bg-slate-900">
-                    <td className="px-4 py-2 text-slate-100">{p.clipadorId}</td>
-                    <td className="px-4 py-2 font-medium text-green-400">{formatCurrencyBRL(p.amount)}</td>
-                    <td className="px-4 py-2"><StatusBadge label={p.status} /></td>
-                    <td className="px-4 py-2 text-slate-300">{new Date(p.requestedAt).toLocaleString('pt-BR')}</td>
-                    <td className="px-4 py-2 text-slate-300">{p.processedAt ? new Date(p.processedAt).toLocaleString('pt-BR') : '-'}</td>
-                    <td className="px-4 py-2 flex gap-2">
+                    <td className="px-3 sm:px-4 py-2 text-slate-100">{p.clipadorId}</td>
+                    <td className="px-3 sm:px-4 py-2 font-medium text-green-400">{formatCurrencyBRL(p.amount)}</td>
+                    <td className="px-3 sm:px-4 py-2"><StatusBadge label={p.status} /></td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300">{new Date(p.requestedAt).toLocaleString('pt-BR')}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300">{p.processedAt ? new Date(p.processedAt).toLocaleString('pt-BR') : '-'}</td>
+                    <td className="px-3 sm:px-4 py-2 flex flex-wrap gap-2">
                       {p.status !== 'PROCESSED' && (
                         <form action={async () => { 'use server'; await db.payment.markProcessed(p.id); }}>
                           <Button size="sm">Marcar Processado</Button>

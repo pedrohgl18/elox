@@ -65,10 +65,10 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
   return (
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold">Moderação de Vídeos</h2>
-            <form className="flex items-end gap-2" method="get">
-              <div>
+            <form className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-2 w-full sm:w-auto" method="get">
+              <div className="w-full sm:w-auto">
                 <label className="block text-xs text-slate-400 mb-1">Status</label>
                 <Select name="status" defaultValue={searchParams?.status || ''}>
                   <option value="">Todos</option>
@@ -77,7 +77,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                   <option value="REJECTED">Rejeitado</option>
                 </Select>
               </div>
-              <div>
+              <div className="w-full sm:w-auto">
                 <label className="block text-xs text-slate-400 mb-1">Rede</label>
                 <Select name="social" defaultValue={searchParams?.social || ''}>
                   <option value="">Todas</option>
@@ -86,43 +86,45 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                   <option value="kwai">Kwai</option>
                 </Select>
               </div>
-              <div>
+              <div className="w-full sm:w-auto">
                 <label className="block text-xs text-slate-400 mb-1">Buscar (usuário/email)</label>
                 <Input name="q" placeholder="ex: clip_user ou user@" defaultValue={searchParams?.q || ''} />
               </div>
               <input type="hidden" name="sort" value={searchParams?.sort || 'recent'} />
               <input type="hidden" name="page" value={String(currentPage)} />
               <input type="hidden" name="pageSize" value={String(pageSize)} />
-              <Button type="submit" size="sm">Filtrar</Button>
-              <a href="/admin/videos"><Button type="button" variant="outline" size="sm">Limpar</Button></a>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Filtrar</Button>
+                <a href="/admin/videos"><Button type="button" variant="outline" size="sm">Limpar</Button></a>
+              </div>
             </form>
           </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800 text-sm">
+            <table className="min-w-full divide-y divide-slate-800 text-sm sm:text-[0.95rem]">
               <thead className="bg-gradient-to-r from-slate-950 via-emerald-900/10 to-slate-950">
                 <tr>
                   {['Clipador','Rede','URL','Enviado em','Validado em','Status','Ações'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold text-slate-200">{h}</th>
+                    <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-950">
                 {pageItems.map(({ v, c }) => (
                   <tr key={v.id} className="group hover:bg-slate-900">
-                    <td className="px-4 py-2 text-slate-100">
+                    <td className="px-3 sm:px-4 py-2 text-slate-100">
                       <div className="flex flex-col">
                         <span className="font-medium">{c.username}</span>
                         <span className="text-xs text-slate-400">{c.email}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-slate-300">{v.socialMedia.toUpperCase()}</td>
-                    <td className="px-4 py-2"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
-                    <td className="px-4 py-2 text-slate-300">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
-                    <td className="px-4 py-2 text-slate-300">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
-                    <td className="px-4 py-2"><StatusBadge label={v.status} /></td>
-                    <td className="px-4 py-2 flex gap-2">
+                    <td className="px-3 sm:px-4 py-2 text-slate-300">{v.socialMedia.toUpperCase()}</td>
+                    <td className="px-3 sm:px-4 py-2"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-300">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
+                    <td className="px-3 sm:px-4 py-2"><StatusBadge label={v.status} /></td>
+                    <td className="px-3 sm:px-4 py-2 flex flex-wrap gap-2">
                       {v.status !== 'APPROVED' && (
                         <form action={async () => { 'use server'; await db.video.approve(v.id); revalidatePath('/admin/videos'); }}>
                           <Button size="sm">Aprovar</Button>
@@ -139,7 +141,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between mt-4 text-sm text-slate-300">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-slate-300">
             <div>
               Exibindo {Math.min(total, end) - start} de {total} itens — Página {currentPage} de {totalPages}
             </div>
