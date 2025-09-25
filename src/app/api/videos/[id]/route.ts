@@ -26,5 +26,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const result = body.action === 'approve' ? await db.video.approve(params.id) : await db.video.reject(params.id);
   if (!result) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  // Criar notificação para o dono do vídeo
+  try {
+    const ownerId = result.clipadorId;
+    const type = body.action === 'approve' ? 'video_approved' : 'video_rejected';
+    const title = body.action === 'approve' ? 'Vídeo aprovado' : 'Vídeo rejeitado';
+    const message = body.action === 'approve'
+      ? 'Seu vídeo foi aprovado e começará a contar métricas.'
+      : 'Seu vídeo foi rejeitado. Revise as diretrizes e tente novamente.';
+    if (db.notifications?.create) {
+      await db.notifications.create({ userId: ownerId, type, title, message });
+    }
+  } catch (e) {
+    console.error('Falha ao criar notificação:', e);
+  }
   return NextResponse.json(result);
 }

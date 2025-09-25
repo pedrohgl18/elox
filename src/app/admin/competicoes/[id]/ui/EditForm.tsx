@@ -19,7 +19,14 @@ export default function EditForm({ competition }: { competition: Competition }) 
     requiredMentions: (competition.rules.requiredMentions || []).join(' '),
   });
   const [rewards, setRewards] = useState<Array<{ fromPlace: number; toPlace: number; amount: number; description?: string }>>((competition.rewards || []).map((r: any) => ({ fromPlace: r.fromPlace ?? r.place ?? 1, toPlace: r.toPlace ?? r.place ?? r.fromPlace ?? 1, amount: r.amount, description: r.description })));
-  const [audioLinks, setAudioLinks] = useState<Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; url: string; label?: string }>>(competition.assets?.audioLinks || []);
+  const [audioLinks, setAudioLinks] = useState<Array<{ platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; type: 'name' | 'url'; value: string; label?: string }>>(
+    (competition.assets?.audioLinks || []).map((a: any) => ({
+      platform: a.platform,
+      type: a?.url ? 'url' : 'name',
+      value: a?.url ?? (a?.label ?? ''),
+      label: a?.label,
+    }))
+  );
   const [phases, setPhases] = useState<Array<{ name: string; startDate: string; endDate: string; description?: string }>>((competition.phases || []).map(ph => ({
     name: ph.name,
     startDate: new Date(ph.startDate).toISOString().slice(0,16),
@@ -50,7 +57,15 @@ export default function EditForm({ competition }: { competition: Competition }) 
             requiredMentions: form.requiredMentions.trim() ? form.requiredMentions.split(/[ ,]+/).filter(Boolean) : [],
           },
           rewards,
-          assets: { audioLinks },
+          assets: {
+            audioLinks: audioLinks.length
+              ? audioLinks.map(a => ({
+                  platform: a.platform,
+                  url: a.type === 'url' ? a.value : undefined,
+                  label: a.label || (a.type === 'name' ? a.value : undefined),
+                }))
+              : undefined,
+          },
           phases,
         }),
       });
@@ -67,7 +82,7 @@ export default function EditForm({ competition }: { competition: Competition }) 
   }
 
   return (
-  <form onSubmit={onSubmit} className="space-y-4 max-w-3xl">
+  <form onSubmit={onSubmit} className="space-y-4 max-w-5xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm text-slate-300 mb-1">Nome</label>
@@ -165,32 +180,67 @@ export default function EditForm({ competition }: { competition: Competition }) 
       </div>
       <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/60">
         <div className="flex items-center justify-between mb-3">
-          <label className="block text-sm text-slate-300">Links de Áudio</label>
-          <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
-            onClick={() => setAudioLinks(prev => [...prev, { platform: 'tiktok', url: '' }])}
-          >Adicionar link</button>
+          <label className="block text-sm text-slate-300">Links de Áudio / Nome da Música</label>
+          <button
+            type="button"
+            className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+            onClick={() => setAudioLinks(prev => [...prev, { platform: 'tiktok', type: 'url', value: '', label: '' }])}
+          >Adicionar item</button>
         </div>
         <div className="space-y-2">
           {audioLinks.map((a, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-[140px_1fr_180px_auto] gap-3 items-center">
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-[140px_150px_1fr_200px_auto] lg:grid-cols-[160px_180px_1fr_220px_auto] gap-3 items-center">
               <div>
                 <label className="block text-xs text-slate-400">Plataforma</label>
-                <select className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.platform}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, platform: e.target.value as any } : x))}
+                <select
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3"
+                  value={a.platform}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, platform: e.target.value as any } : x))
+                  }
                 >
                   {(['tiktok','instagram','kwai','youtube'] as const).map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-slate-400">URL</label>
-                <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, url: e.target.value } : x))} />
+                <label className="block text-xs text-slate-400">Tipo</label>
+                <select
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3"
+                  value={a.type}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, type: e.target.value as 'name' | 'url' } : x))
+                  }
+                >
+                  <option value="url">Link (URL)</option>
+                  <option value="name">Nome da música</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">{a.type === 'name' ? 'Nome da música' : 'URL'}</label>
+                <input
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3"
+                  value={a.value}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, value: e.target.value } : x))
+                  }
+                />
               </div>
               <div>
                 <label className="block text-xs text-slate-400">Rótulo (opcional)</label>
-                <input className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3" value={a.label || ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, label: e.target.value } : x))} />
+                <input
+                  className="w-full bg-slate-900 text-slate-200 border border-slate-800 rounded-lg h-10 px-3"
+                  value={a.label || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setAudioLinks(rs => rs.map((x,i) => i===idx ? { ...x, label: e.target.value } : x))
+                  }
+                />
               </div>
               <div className="flex items-end">
-                <button type="button" className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800" onClick={() => setAudioLinks(rs => rs.filter((_,i) => i!==idx))}>Remover</button>
+                <button
+                  type="button"
+                  className="h-9 px-3 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+                  onClick={() => setAudioLinks(rs => rs.filter((_,i) => i!==idx))}
+                >Remover</button>
               </div>
             </div>
           ))}

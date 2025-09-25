@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { signOut } from 'next-auth/react';
-import { ChevronDown, User, LogOut, Settings, Bell } from 'lucide-react';
+import { ChevronDown, User, LogOut, Settings } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { NotificationBell } from './NotificationBell';
 
 interface UserHeaderProps {
   username: string;
@@ -32,9 +33,7 @@ export function UserHeader({ username, email }: UserHeaderProps) {
         {/* Menu do Usuário */}
         <div className="flex items-center space-x-4">
           {/* Notificações */}
-          <button className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-full transition-colors">
-            <Bell className="h-5 w-5" aria-label="Notificações" />
-          </button>
+          <NotificationBell />
 
           {/* Dropdown do Usuário */}
           <div className="relative">

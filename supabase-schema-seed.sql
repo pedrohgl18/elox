@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS public.payments (
   requested_at timestamptz DEFAULT now(),
   processed_at timestamptz
 );
-
 CREATE TABLE IF NOT EXISTS public.competitions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
@@ -82,6 +81,20 @@ CREATE TABLE IF NOT EXISTS public.competition_participants (
   joined_at timestamptz DEFAULT now(),
   PRIMARY KEY (competition_id, clipador_id)
 );
+
+-- Notificações de usuário
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  type text NOT NULL CHECK (type IN ('video_approved','video_rejected','payment_processed','payment_failed')),
+  title text NOT NULL,
+  message text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  read_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON public.notifications (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications (user_id) WHERE read_at IS NULL;
 
 -- Índice único para enforcement case-insensitive (evita username duplicado apenas por caixa)
 DO $$

@@ -1,5 +1,5 @@
 import { getSupabaseClient, getSupabaseServiceClient } from './supabaseClient';
-import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador } from './types';
+import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador, Notification, NotificationType } from './types';
 import { AuthUserRecord, Role } from './database';
 import bcrypt from 'bcryptjs';
 
@@ -157,6 +157,71 @@ export function createSupabaseAdapter() {
         const { data, error } = await supabase.from('profiles').select('*').or(`id.eq.${key},email.eq.${key}`).limit(1).maybeSingle();
         if (error || !data) return null;
         return mapProfile(data as ProfileRow);
+      },
+    },
+    notifications: {
+      listForUser: async (userId: string, opts?: { unreadOnly?: boolean; limit?: number }) => {
+        let query = supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        if (opts?.unreadOnly) query = query.is('read_at', null);
+        if (opts?.limit) query = query.limit(opts.limit);
+        const { data, error } = await query;
+        if (error || !data) return [] as Notification[];
+        return (data as any[]).map(row => ({
+          id: row.id,
+          userId: row.user_id,
+          type: row.type as NotificationType,
+          title: row.title,
+          message: row.message ?? undefined,
+          createdAt: new Date(row.created_at),
+          readAt: row.read_at ? new Date(row.read_at) : undefined,
+        } satisfies Notification));
+      },
+      create: async (payload: { userId: string; type: NotificationType; title: string; message?: string }) => {
+        const { data, error } = await supabase
+          .from('notifications')
+          .insert({ user_id: payload.userId, type: payload.type, title: payload.title, message: payload.message ?? null })
+          .select('*')
+          .single();
+        if (error || !data) return null;
+        const row = data as any;
+        const n: Notification = {
+          id: row.id,
+          userId: row.user_id,
+          type: row.type as NotificationType,
+          title: row.title,
+          message: row.message ?? undefined,
+          createdAt: new Date(row.created_at),
+          readAt: row.read_at ? new Date(row.read_at) : undefined,
+        };
+        return n;
+      },
+      markRead: async (id: string) => {
+        const { data, error } = await supabase
+          .from('notifications')
+          .update({ read_at: new Date().toISOString() })
+          .eq('id', id)
+          .select('*')
+          .single();
+        if (error || !data) return null;
+        const row = data as any;
+        const n: Notification = {
+          id: row.id,
+          userId: row.user_id,
+          type: row.type as NotificationType,
+          title: row.title,
+          message: row.message ?? undefined,
+          createdAt: new Date(row.created_at),
+          readAt: row.read_at ? new Date(row.read_at) : undefined,
+        };
+        return n;
+      },
+      markAllRead: async (userId: string) => {
+        await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', userId).is('read_at', null);
+        return true;
       },
     },
     leaderboard: {

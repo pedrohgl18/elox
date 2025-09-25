@@ -105,3 +105,20 @@ export interface SocialAccount {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Notificações (persistentes via Supabase)
+export type NotificationType =
+  | 'video_approved'
+  | 'video_rejected'
+  | 'payment_processed'
+  | 'payment_failed';
+
+export interface Notification {
+  id: string;
+  userId: string; // id do perfil/usuário
+  type: NotificationType;
+  title: string;
+  message?: string;
+  createdAt: Date;
+  readAt?: Date;
+}
