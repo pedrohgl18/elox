@@ -20,6 +20,12 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null) as { amount?: number } | null;
   if (!body?.amount || body.amount <= 0) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+  const minAmount = 5; // valor mínimo simbólico em BRL
+  if (body.amount < minAmount) return NextResponse.json({ error: `Valor mínimo para saque é R$ ${minAmount}.` }, { status: 400 });
+  const summary = await db.finance.getUserEarningsSummary(user.id);
+  if (body.amount > summary.available) {
+    return NextResponse.json({ error: 'Valor solicitado excede seu saldo disponível.' }, { status: 400 });
+  }
   const p = await db.payment.request(user, body.amount);
   return NextResponse.json(p, { status: 201 });
 }

@@ -105,7 +105,7 @@ class InMemoryDB {
       return this.videos.filter((v) => v.clipadorId === user.id);
     },
     getById: async (id: string) => this.videos.find((v) => v.id === id) || null,
-    create: async (user: AuthUserRecord, url: string, social: Video['socialMedia']) => {
+    create: async (user: AuthUserRecord, url: string, social: Video['socialMedia'], competitionId?: string | null) => {
       const video: Video = {
         id: uid('v_'),
         clipadorId: user.id,
@@ -115,6 +115,7 @@ class InMemoryDB {
         earnings: 0,
         status: VideoStatus.Pending,
         submittedAt: new Date(),
+        competitionId: competitionId ?? undefined,
       };
       this.videos.push(video);
       return video;
@@ -214,6 +215,96 @@ class InMemoryDB {
     },
   };
 
+  // Ranking/Aggregation helpers
+  leaderboard = {
+    // Ranking global por clipador agregando views/earnings e contagem de vídeos aprovados
+    global: async () => {
+      const byUser: Record<string, { username: string; totalEarnings: number; totalViews: number; approvedVideos: number; totalVideos: number }> = {};
+      // Inicializa todos os clipadores
+      for (const u of this.users.filter((x) => x.role === 'clipador')) {
+        byUser[u.id] = { username: u.username, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+      }
+      // Agrega vídeos
+      for (const v of this.videos) {
+        const u = this.users.find((x) => x.id === v.clipadorId);
+        if (!u) continue;
+        const key = u.id;
+        if (!byUser[key]) byUser[key] = { username: u.username, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+        byUser[key].totalViews += v.views || 0;
+        byUser[key].totalVideos += 1;
+        if (v.status === VideoStatus.Approved) byUser[key].approvedVideos += 1;
+      }
+      // Agrega pagamentos processados como ganhos
+      for (const p of this.payments) {
+        if (p.status !== PaymentStatus.Processed) continue;
+        const u = this.users.find((x) => x.id === p.clipadorId);
+        if (!u) continue;
+        const key = u.id;
+        if (!byUser[key]) byUser[key] = { username: u.username, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+        byUser[key].totalEarnings += p.amount || 0;
+      }
+      const rows = Object.values(byUser).sort((a, b) => b.totalEarnings - a.totalEarnings || b.totalViews - a.totalViews);
+      return rows;
+    },
+    // Ranking por competição simples (top por views dentro do período inteiro da competição)
+    competitionByViews: async (competitionId: string, opts?: { limitPerLevel?: number }) => {
+      const comp = this.competitions.find((c) => c.id === competitionId);
+      if (!comp) return null;
+      // Filtra vídeos aprovados desta competição
+      const vids = this.videos.filter((v) => v.competitionId === competitionId && v.status === VideoStatus.Approved);
+      // Níveis default conforme especificação
+      const levels = [
+        { name: 'Level 5', prize: 150, maxWinners: 3, minViews: 0 },
+        { name: 'Level 4', prize: 75, maxWinners: 5, minViews: 0 },
+        { name: 'Level 3', prize: 30, maxWinners: 10, minViews: 0 },
+        { name: 'Level 2', prize: 15, maxWinners: 15, minViews: 0 },
+        { name: 'Level 1', prize: 5, maxWinners: 20, minViews: 0 },
+      ];
+      // Se admin configurou minViews na competição, usa como piso do Level 1
+      if (comp.rules?.minViews) levels[4].minViews = comp.rules.minViews;
+      // Estratégia simplificada: ordena todos por views e distribui nos níveis de cima para baixo
+      const sorted = [...vids].sort((a, b) => b.views - a.views);
+      // Aplicar restrições: até 2 vídeos premiados por usuário por nível e até 4 no total; cada vídeo só pode ganhar em um nível
+      const perUserTotal: Record<string, number> = {};
+      const usedVideos = new Set<string>();
+      const results = levels.map((lvl, idx) => {
+        const winners: Array<{ videoId: string; username: string; clipadorId: string; views: number; place: number }> = [];
+        const perUserLevel: Record<string, number> = {};
+        for (const v of sorted) {
+          if (winners.length >= lvl.maxWinners) break;
+          if (usedVideos.has(v.id)) continue;
+          if (lvl.minViews && v.views < lvl.minViews) continue;
+          const user = this.users.find((x) => x.id === v.clipadorId);
+          if (!user) continue;
+          const tot = perUserTotal[user.id] || 0;
+          if (tot >= 4) continue; // limite diário agregado (aplicado aqui como simplificação)
+          const lvlCount = perUserLevel[user.id] || 0;
+          if (lvlCount >= 2) continue; // máximo 2 por nível
+          winners.push({ videoId: v.id, username: user.username, clipadorId: user.id, views: v.views, place: winners.length + 1 });
+          perUserLevel[user.id] = lvlCount + 1;
+          perUserTotal[user.id] = tot + 1;
+          usedVideos.add(v.id);
+        }
+        return { level: 5 - idx, name: lvl.name, prize: lvl.prize, maxWinners: lvl.maxWinners, winners };
+      });
+      return { competitionId, name: comp.name, levels: results };
+    },
+    // Ranking por quantidade de vídeos (aprovados) por plataforma ou todas
+    countByVideos: async (platform?: 'tiktok' | 'instagram' | 'kwai' | 'all') => {
+      const byUser: Record<string, { username: string; total: number }> = {};
+      for (const v of this.videos) {
+        if (v.status !== VideoStatus.Approved) continue;
+        if (platform && platform !== 'all' && v.socialMedia !== platform) continue;
+        const u = this.users.find((x) => x.id === v.clipadorId);
+        if (!u) continue;
+        const key = u.id;
+        if (!byUser[key]) byUser[key] = { username: u.username, total: 0 };
+        byUser[key].total += 1;
+      }
+      return Object.values(byUser).sort((a, b) => b.total - a.total);
+    },
+  };
+
   // Utilitários de administração
   admin = {
     listClipadores: async () => this.users.filter((u) => u.role === 'clipador'),
@@ -234,4 +325,31 @@ class InMemoryDB {
 
 // Exporta adaptador dinâmico: tenta Supabase primeiro, fallback para memória
 const supabaseAdapter = createSupabaseAdapter();
-export const db: any = supabaseAdapter ?? new InMemoryDB();
+const memory = new InMemoryDB();
+// Adiciona helper de finanças (tanto no adapter quanto no fallback)
+function attachFinance(api: any) {
+  api.finance = api.finance || {};
+  api.finance.getUserEarningsSummary = async (userId: string) => {
+    // Soma ganhos estimados usando CPM das competições
+    const videos: Video[] = await api.video.listForUser({ id: userId, role: 'clipador' } as any);
+    let lifetime = 0;
+    for (const v of videos) {
+      if (v.status !== VideoStatus.Approved) continue;
+      let cpm = 0;
+      if (v.competitionId) {
+        const comp = await api.competition.getById(v.competitionId);
+        cpm = comp?.rules?.cpm ?? 0;
+      }
+      lifetime += ((v.views || 0) / 1000) * (cpm || 0);
+    }
+    // Pagamentos
+    const allPays: Payment[] = await api.payment.listForUser({ id: userId, role: 'clipador' } as any);
+    const processed = allPays.filter((p: Payment) => p.status === PaymentStatus.Processed).reduce((s: number, p: Payment) => s + p.amount, 0);
+    const pending = allPays.filter((p: Payment) => p.status === PaymentStatus.Pending).reduce((s: number, p: Payment) => s + p.amount, 0);
+    const available = Math.max(0, lifetime - processed - pending);
+    return { lifetime, processed, pending, available };
+  };
+  return api;
+}
+
+export const db: any = attachFinance(supabaseAdapter ?? memory);

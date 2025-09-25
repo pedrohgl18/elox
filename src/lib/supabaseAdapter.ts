@@ -157,6 +157,100 @@ export function createSupabaseAdapter() {
         return mapProfile(data as ProfileRow);
       },
     },
+    leaderboard: {
+      global: async () => {
+        // Busca todos clipadores
+        const profiles = await supabase.from('profiles').select('id,username,role').eq('role', 'clipador');
+        const byUser: Record<string, { username: string; totalEarnings: number; totalViews: number; approvedVideos: number; totalVideos: number }> = {};
+        if (!profiles.error && profiles.data) {
+          for (const p of profiles.data as any[]) {
+            byUser[p.id] = { username: p.username, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+          }
+        }
+        // Agrega vídeos
+        const vids = await supabase.from('videos').select('clipador_id,views,status');
+        if (!vids.error && vids.data) {
+          for (const v of vids.data as any[]) {
+            const key = v.clipador_id as string;
+            if (!byUser[key]) byUser[key] = { username: key, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+            byUser[key].totalViews += Number(v.views) || 0;
+            byUser[key].totalVideos += 1;
+            if (v.status === 'APPROVED') byUser[key].approvedVideos += 1;
+          }
+        }
+        // Agrega pagamentos processados
+        const pays = await supabase.from('payments').select('clipador_id,amount,status').eq('status', 'PROCESSED');
+        if (!pays.error && pays.data) {
+          for (const p of pays.data as any[]) {
+            const key = p.clipador_id as string;
+            if (!byUser[key]) byUser[key] = { username: key, totalEarnings: 0, totalViews: 0, approvedVideos: 0, totalVideos: 0 };
+            byUser[key].totalEarnings += Number(p.amount) || 0;
+          }
+        }
+        return Object.values(byUser).sort((a, b) => b.totalEarnings - a.totalEarnings || b.totalViews - a.totalViews);
+      },
+      competitionByViews: async (competitionId: string) => {
+        const compResp = await supabase.from('competitions').select('*').eq('id', competitionId).single();
+        if (compResp.error || !compResp.data) return null;
+        const comp = mapCompetition(compResp.data as any, []);
+        const vids = await supabase
+          .from('videos')
+          .select('id,clipador_id,views,status')
+          .eq('competition_id', competitionId)
+          .eq('status', 'APPROVED');
+        const profiles = await supabase.from('profiles').select('id,username');
+        const usernameById = new Map<string, string>();
+        if (!profiles.error && profiles.data) {
+          (profiles.data as any[]).forEach(p => usernameById.set(p.id, p.username));
+        }
+        const list = (vids.data as any[] || []).map(v => ({ id: v.id as string, clipadorId: v.clipador_id as string, views: Number(v.views) || 0 }));
+        const levels = [
+          { name: 'Level 5', prize: 150, maxWinners: 3, minViews: 0 },
+          { name: 'Level 4', prize: 75, maxWinners: 5, minViews: 0 },
+          { name: 'Level 3', prize: 30, maxWinners: 10, minViews: 0 },
+          { name: 'Level 2', prize: 15, maxWinners: 15, minViews: 0 },
+          { name: 'Level 1', prize: 5, maxWinners: 20, minViews: 0 },
+        ];
+        if (comp.rules?.minViews) levels[4].minViews = comp.rules.minViews;
+        const sorted = [...list].sort((a, b) => b.views - a.views);
+        const perUserTotal: Record<string, number> = {};
+        const results = levels.map((lvl, idx) => {
+          const winners: Array<{ videoId: string; username: string; clipadorId: string; views: number; place: number }> = [];
+          const perUserLevel: Record<string, number> = {};
+          for (const v of sorted) {
+            if (winners.length >= lvl.maxWinners) break;
+            if (lvl.minViews && v.views < lvl.minViews) continue;
+            const tot = perUserTotal[v.clipadorId] || 0;
+            if (tot >= 4) continue;
+            const lvlCount = perUserLevel[v.clipadorId] || 0;
+            if (lvlCount >= 2) continue;
+            if (winners.some((w) => w.videoId === v.id)) continue;
+            winners.push({ videoId: v.id, username: usernameById.get(v.clipadorId) || v.clipadorId, clipadorId: v.clipadorId, views: v.views, place: winners.length + 1 });
+            perUserLevel[v.clipadorId] = lvlCount + 1;
+            perUserTotal[v.clipadorId] = tot + 1;
+          }
+          return { level: 5 - idx, name: lvl.name, prize: lvl.prize, maxWinners: lvl.maxWinners, winners };
+        });
+        return { competitionId, name: comp.name, levels: results };
+      },
+      countByVideos: async (platform?: 'tiktok' | 'instagram' | 'kwai' | 'all') => {
+        let query = supabase.from('videos').select('clipador_id,status,social_media');
+        const { data, error } = await query;
+        if (error || !data) return [];
+        const byUser: Record<string, { username: string; total: number }> = {};
+        const profiles = await supabase.from('profiles').select('id,username');
+        const usernameById = new Map<string, string>();
+        if (!profiles.error && profiles.data) (profiles.data as any[]).forEach(p => usernameById.set(p.id, p.username));
+        for (const v of data as any[]) {
+          if (v.status !== 'APPROVED') continue;
+          if (platform && platform !== 'all' && v.social_media !== platform) continue;
+          const key = v.clipador_id as string;
+          if (!byUser[key]) byUser[key] = { username: usernameById.get(key) || key, total: 0 };
+          byUser[key].total += 1;
+        }
+        return Object.values(byUser).sort((a, b) => b.total - a.total);
+      }
+    },
     video: {
       listForUser: async (user: AuthUserRecord | null) => {
         if (!user) return [];

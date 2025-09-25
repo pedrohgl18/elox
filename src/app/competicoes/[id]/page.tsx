@@ -3,6 +3,8 @@ import { db } from '@/lib/database';
 import { notFound } from 'next/navigation';
 import { formatDateShort } from '@/lib/format';
 import { CompetitionEnrollButton } from '@/components/user/CompetitionEnrollButton';
+import { formatCurrencyBRL } from '@/lib/format';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,7 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
             <h2 className="font-semibold mb-2">Premiações</h2>
             <ul className="text-sm text-slate-300 space-y-1">
               {c.rewards.map((r: any) => (
-                <li key={r.place}>#{r.place} • R$ {(r.amount/1).toFixed(2)} {r.description ? `• ${r.description}` : ''}</li>
+                <li key={r.place}>#{r.place} • {formatCurrencyBRL(r.amount)} {r.description ? `• ${r.description}` : ''}</li>
               ))}
             </ul>
           </div>
@@ -40,6 +42,21 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
         {/* CTA de inscrição */}
         <div className="pt-2">
           <CompetitionEnrollButton competitionId={c.id} />
+        </div>
+
+        {/* Seção explicativa do ranking */}
+        <div className="mt-8 border border-slate-800 rounded-xl p-5 bg-slate-900/60">
+          <h2 className="text-xl font-semibold mb-2">Como funciona o Ranking</h2>
+          <div className="space-y-2 text-slate-300 text-sm">
+            <p>O ranking é baseado no número de visualizações dos vídeos publicados com as hashtags e marcações obrigatórias da competição e validados pelos moderadores.</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>5 níveis (Level 1 a Level 5): quanto mais views, maior o nível.</li>
+              <li>Cada nível tem um número fixo de posições premiadas.</li>
+              <li>Cada usuário pode ter até 2 vídeos premiados por nível e até 4 no total por dia.</li>
+              <li>Ranking atualizado diariamente e com consolidação semanal.</li>
+            </ul>
+            <p className="text-slate-400">Exemplo: Um vídeo com 10.000 visualizações pode entrar no Level 4 e render R$ 75,00.</p>
+          </div>
         </div>
       </div>
     </div>

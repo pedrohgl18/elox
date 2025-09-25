@@ -43,19 +43,25 @@ export default async function RankingPage() {
     .reduce((acc: number, p: Payment) => acc + p.amount, 0);
   const userViews = userVideos.reduce((acc: number, v: Video) => acc + v.views, 0);
 
-  // Mock data para o ranking (em um cenário real, isso viria do banco)
-  const mockRanking = [
-    { username: 'clipador_pro', totalEarnings: 2850, totalViews: 125000, approvedVideos: 45, totalVideos: 52 },
-    { username: 'viral_master', totalEarnings: 2340, totalViews: 98000, approvedVideos: 38, totalVideos: 41 },
-    { username: 'trend_hunter', totalEarnings: 1920, totalViews: 87000, approvedVideos: 35, totalVideos: 43 },
-  { username: user.username, totalEarnings: userEarnings, totalViews: userViews, approvedVideos: userVideos.filter((v: Video) => v.status === 'APPROVED').length, totalVideos: userVideos.length },
-    { username: 'content_king', totalEarnings: 1650, totalViews: 76000, approvedVideos: 32, totalVideos: 39 },
-    { username: 'clip_wizard', totalEarnings: 1480, totalViews: 65000, approvedVideos: 28, totalVideos: 35 },
-    { username: 'social_ninja', totalEarnings: 1320, totalViews: 58000, approvedVideos: 25, totalVideos: 31 }
-  ];
+  // Buscar ranking global do backend
+  const leaderboardRes = await fetch(`${config.baseUrl}/api/leaderboard`, { cache: 'no-store' });
+  let leaderboard: Array<{ username: string; totalEarnings: number; totalViews: number; approvedVideos: number; totalVideos: number }> = [];
+  if (leaderboardRes.ok) {
+    leaderboard = await leaderboardRes.json();
+  }
 
-  // Ordenar por ganhos totais e derivar dados
-  const sortedByEarnings = [...mockRanking].sort((a, b) => b.totalEarnings - a.totalEarnings);
+  // Garante que o usuário atual apareça na lista
+  if (!leaderboard.some((r) => r.username === user.username)) {
+    leaderboard.push({
+      username: user.username,
+      totalEarnings: userEarnings,
+      totalViews: userViews,
+      approvedVideos: userVideos.filter((v: Video) => v.status === 'APPROVED').length,
+      totalVideos: userVideos.length,
+    });
+  }
+
+  const sortedByEarnings = [...leaderboard].sort((a, b) => b.totalEarnings - a.totalEarnings || b.totalViews - a.totalViews);
   const top3 = sortedByEarnings.slice(0, 3);
   const tableRows = sortedByEarnings.map((clipador, i) => ({
     rank: `#${i + 1}`,
