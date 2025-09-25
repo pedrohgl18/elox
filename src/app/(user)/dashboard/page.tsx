@@ -12,10 +12,11 @@ import { formatCurrencyBRL } from '@/lib/format';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/database';
-import { Video, Payment } from '@/lib/types';
+import { Video, Payment, Competition } from '@/lib/types';
 import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
+import Link from 'next/link';
 
 export default async function UserDashboard() {
   const session: any = await getServerSession(authOptions as any);
@@ -39,6 +40,11 @@ export default async function UserDashboard() {
   
   const videos: Video[] = await db.video.listForUser(user);
   const payments: Payment[] = await db.payment.listForUser(user);
+  // Competições do usuário
+  const enrolledComps: Competition[] = (await db.competition.listEnrolledForUser?.(user.id)) || [];
+  const now = Date.now();
+  const activeComps = enrolledComps.filter(c => now >= c.startDate.getTime() && now <= c.endDate.getTime());
+  const nextActive = activeComps.sort((a,b) => a.endDate.getTime() - b.endDate.getTime())[0];
 
   const totalEarnings = payments
     .filter((p: Payment) => p.status !== 'FAILED')
@@ -81,6 +87,32 @@ export default async function UserDashboard() {
             #-
           </CardContent>
         </Card>
+      </div>
+
+      {/* Destaque de Competições */}
+      <div className="mb-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-100">Suas Competições</h2>
+          <Link href="/dashboard/competitions" className="text-sm text-brand-400 hover:text-brand-300">Ver todas</Link>
+        </div>
+        {nextActive ? (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="text-slate-100 font-semibold">{nextActive.name}</div>
+                <div className="text-slate-400 text-sm">Ativa agora • termina em {nextActive.endDate.toLocaleDateString('pt-BR')}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link href={`/competicoes/${nextActive.id}`} className="text-sm px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800">Ver detalhes</Link>
+                <Link href="/dashboard/upload" className="text-sm px-3 py-1.5 rounded-lg bg-brand-500 text-white hover:bg-brand-400">Enviar para esta campanha</Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 text-slate-300 text-sm">
+            Você ainda não está inscrito em nenhuma campanha ativa. Explore novas campanhas na página de Competições.
+          </div>
+        )}
       </div>
 
       {/* Charts and Forms Section */}

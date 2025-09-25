@@ -468,7 +468,7 @@ export function createSupabaseAdapter() {
           end_date: payload.endDate.toISOString().slice(0,10),
           is_active: payload.isActive ?? true,
           status,
-          allowed_platforms: payload.rules?.allowedPlatforms ?? ['tiktok','instagram','kwai'],
+          allowed_platforms: payload.rules?.allowedPlatforms ?? ['tiktok','instagram','kwai','youtube'],
         };
         const { data, error } = await supabase.from('competitions').insert(insert).select('*').single();
         if (error || !data) throw error;

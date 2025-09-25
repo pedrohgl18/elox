@@ -71,26 +71,7 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-3">
       {error && <Alert variant="error" description={error} />}
       {success && <Alert variant="success" description={success} />}
-      <div>
-        <label className="mb-1 block text-sm font-medium">URL do Vídeo</label>
-        <Input
-          placeholder="https://..."
-          value={url}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const value = e.currentTarget.value;
-            setUrl(value);
-            // auto-detect leve
-            const detected = detectSocialMediaFromUrl(value);
-            if (detected) setSocial(detected);
-          }}
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">Rede Social</label>
-  <SocialPicker value={social as any} onChange={setSocial as any} />
-      </div>
-
-      {/* Seletor de Campanha atual (somente as que o usuário está inscrito) */}
+      {/* Seletor de Campanha no topo */}
       <div>
         <label className="mb-1 block text-sm font-medium">Selecionar Campanha</label>
         <div className="flex flex-wrap gap-2">
@@ -109,6 +90,24 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
             </button>
           ))}
         </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">URL do Vídeo</label>
+        <Input
+          placeholder="https://..."
+          value={url}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const value = e.currentTarget.value;
+            setUrl(value);
+            // auto-detect leve
+            const detected = detectSocialMediaFromUrl(value);
+            if (detected) setSocial(detected);
+          }}
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">Rede Social</label>
+  <SocialPicker value={social as any} onChange={setSocial as any} />
       </div>
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={loading || competitions.length === 0}>

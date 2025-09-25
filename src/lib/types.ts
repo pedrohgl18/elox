@@ -27,7 +27,7 @@ export interface Video {
   id: string;
   clipadorId: string;
   url: string;
-  socialMedia: 'tiktok' | 'instagram' | 'kwai';
+  socialMedia: 'tiktok' | 'instagram' | 'kwai' | 'youtube';
   views: number;
   earnings: number;
   status: VideoStatus;

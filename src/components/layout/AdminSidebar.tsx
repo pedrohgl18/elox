@@ -6,9 +6,9 @@ import { Home, Users, Video, Wallet, Settings, ShieldCheck, BarChart3, CheckCirc
 
 const items = [
   { label: 'Visão Geral', href: '/admin', icon: Home, desc: 'KPIs do sistema' },
+  { label: 'Competições', href: '/admin/competicoes', icon: Trophy, desc: 'Campanhas' },
   { label: 'Clipadores', href: '/admin/clipadores', icon: Users, desc: 'Gerenciar usuários' },
   { label: 'Vídeos', href: '/admin/videos', icon: Video, desc: 'Moderar envios' },
-  { label: 'Competições', href: '/admin/competicoes', icon: Trophy, desc: 'Campanhas' },
   { label: 'Pagamentos', href: '/admin/pagamentos', icon: Wallet, desc: 'Processar saques' },
   { label: 'Relatórios', href: '/admin/relatorios', icon: BarChart3, desc: 'Métricas' },
   { label: 'Configurações', href: '/admin/config', icon: Settings, desc: 'Sistema' },

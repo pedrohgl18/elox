@@ -18,7 +18,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const VideosAPI = {
   list: () => api<any[]>('/api/videos'),
-  create: (payload: { url: string; socialMedia: 'tiktok' | 'instagram' | 'kwai'; competitionId?: string | null }) =>
+  create: (payload: { url: string; socialMedia: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; competitionId?: string | null }) =>
     api('/api/videos', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
