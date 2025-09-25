@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatCurrencyBRL } from '@/lib/format';
 import { Video, Payment } from '@/lib/types';
-import { User, Mail, Calendar, Shield, Wallet, Settings, Save, Edit3, AlertTriangle } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Wallet, Settings, Save, Edit3, AlertTriangle, Link2 } from 'lucide-react';
+import { SocialAccountsManager } from '@/components/user/SocialAccountsManager';
 
 export default async function ProfilePage() {
   const session: any = await getServerSession(authOptions as any);
@@ -256,6 +257,22 @@ export default async function ProfilePage() {
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Contas Sociais */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Link2 className="h-5 w-5 text-slate-300" />
+                <span className="font-semibold text-slate-100">Contas Sociais</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-slate-400">
+                Conecte suas contas das redes sociais. A EloX usa essas informações para validar vídeos enviados e associar corretamente seus perfis.
+              </p>
+              <SocialAccountsManager />
             </CardContent>
           </Card>
 

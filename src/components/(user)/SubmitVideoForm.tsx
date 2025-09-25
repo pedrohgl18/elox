@@ -9,7 +9,7 @@ import { VideosAPI } from '@/lib/api';
 
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const [url, setUrl] = useState('');
-  const [social, setSocial] = useState<'tiktok' | 'instagram' | 'kwai' | ''>('');
+  const [social, setSocial] = useState<'tiktok' | 'instagram' | 'kwai' | 'youtube' | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -53,13 +53,14 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
         <Select
           value={social}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-            setSocial(e.currentTarget.value as 'tiktok' | 'instagram' | 'kwai' | '')
+            setSocial(e.currentTarget.value as 'tiktok' | 'instagram' | 'kwai' | 'youtube' | '')
           }
         >
           <option value="">Selecione</option>
           <option value="tiktok">TikTok</option>
           <option value="instagram">Instagram</option>
           <option value="kwai">Kwai</option>
+        <option value="youtube">YouTube</option>
         </Select>
       </div>
       <div className="flex justify-end gap-2">

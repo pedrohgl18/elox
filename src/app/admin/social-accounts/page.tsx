@@ -4,20 +4,20 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { config } from '@/lib/config';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { AdminApiKeysForm } from '@/components/admin/AdminApiKeysForm';
+import { AdminSocialAccountsTable } from '@/components/dashboard/DashboardTables';
 
-export default async function AdminConfigPage() {
+export default async function AdminSocialAccountsPage() {
   const session: any = await getServerSession(authOptions as any);
   if (!session?.user) redirect(config.urls.login);
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Configurações</h1>
+      <h1 className="text-2xl font-bold mb-4">Contas Sociais dos Usuários</h1>
       <Card>
-        <CardHeader>Integrações de API das Plataformas</CardHeader>
+        <CardHeader>Revisar / Validar / Revogar</CardHeader>
         <CardContent>
-          <AdminApiKeysForm />
+          <AdminSocialAccountsTable />
         </CardContent>
       </Card>
     </div>

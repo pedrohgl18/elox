@@ -1,4 +1,5 @@
 export type ApiError = { error: string };
+import type { SocialAccount } from '@/lib/types';
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -32,4 +33,13 @@ export const CompetitionsAPI = {
   create: (payload: any) => api('/api/competitions', { method: 'POST', body: JSON.stringify(payload) }),
   get: (id: string) => api<any>(`/api/competitions/${id}`),
   patch: (id: string, payload: any) => api(`/api/competitions/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+};
+
+export const SocialAccountsAPI = {
+  list: (): Promise<SocialAccount[]> => api<SocialAccount[]>('/api/social-accounts'),
+  create: (payload: { platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; username: string }): Promise<SocialAccount> =>
+    api<SocialAccount>('/api/social-accounts', { method: 'POST', body: JSON.stringify(payload) }),
+  patch: (id: string, payload: { username?: string }): Promise<SocialAccount> =>
+    api<SocialAccount>(`/api/social-accounts/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  remove: (id: string): Promise<{ success: boolean }> => api<{ success: boolean }>(`/api/social-accounts/${id}`, { method: 'DELETE' }),
 };

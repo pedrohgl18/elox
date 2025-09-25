@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const authUser = await db.auth.getById((session.user as any).id as string);
   if (!authUser || authUser.role !== 'clipador') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const body = await req.json().catch(() => null) as { url?: string; socialMedia?: 'tiktok' | 'instagram' | 'kwai'; competitionId?: string | null } | null;
+  const body = await req.json().catch(() => null) as { url?: string; socialMedia?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; competitionId?: string | null } | null;
   if (!body?.url || !body.socialMedia) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
 
   // valida e normaliza URL

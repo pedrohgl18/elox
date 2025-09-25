@@ -3,7 +3,8 @@
 import React from 'react';
 import { DataTable } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Video, Payment } from '@/lib/types';
+import { Video, Payment, SocialAccount } from '@/lib/types';
+import { Button } from '@/components/ui/Button';
 
 interface DashboardTablesProps {
   videos: Video[];
@@ -67,6 +68,73 @@ export function DashboardTables({ videos, payments }: DashboardTablesProps) {
         <h2 className="text-lg font-semibold">Histórico de Pagamentos</h2>
         <DataTable data={paymentRows} columns={paymentColumns} />
       </div>
+    </div>
+  );
+}
+
+export function AdminSocialAccountsTable() {
+  const [data, setData] = React.useState<SocialAccount[]>([] as any);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/social-accounts');
+      if (!res.ok) throw new Error('Falha ao carregar');
+      const j = await res.json();
+      setData(j);
+    } catch (e: any) {
+      setError(e.message || 'Erro');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => { load(); }, []);
+
+  const setStatus = async (id: string, status: 'pending' | 'verified' | 'revoked') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/social-accounts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+      if (!res.ok) throw new Error('Falha ao atualizar');
+      await load();
+    } catch (e: any) {
+      setError(e.message || 'Erro');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rows = data.map((a) => ({
+    usuario: a.clipadorId,
+    plataforma: a.platform.toUpperCase(),
+    perfil: '@' + a.username,
+    status: <StatusBadge label={a.status} />,
+    acoes: (
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => setStatus(a.id, 'verified')}>Validar</Button>
+        <Button size="sm" variant="outline" onClick={() => setStatus(a.id, 'revoked')}>Revogar</Button>
+      </div>
+    ),
+  }));
+  const columns = [
+    { key: 'usuario', label: 'Usuário (id)' },
+    { key: 'plataforma', label: 'Plataforma' },
+    { key: 'perfil', label: 'Perfil' },
+    { key: 'status', label: 'Status' },
+    { key: 'acoes', label: 'Ações' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {error && <div className="text-sm text-red-400">{error}</div>}
+      <div className="flex justify-end">
+        <Button size="sm" onClick={load} disabled={loading}>{loading ? 'Atualizando...' : 'Recarregar'}</Button>
+      </div>
+      <DataTable data={rows} columns={columns} />
     </div>
   );
 }

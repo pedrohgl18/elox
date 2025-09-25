@@ -1,4 +1,4 @@
-import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador } from '@/lib/types';
+import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador, SocialAccount } from '@/lib/types';
 import { createSupabaseAdapter } from './supabaseAdapter';
 
 export type Role = 'admin' | 'clipador';
@@ -22,6 +22,8 @@ class InMemoryDB {
   payments: Payment[] = [];
   competitions: Competition[] = [];
   participants: { competitionId: string; clipadorId: string; joinedAt: Date }[] = [];
+  socialAccounts: SocialAccount[] = [];
+  settingsStore: { socialApiKeys: { tiktok?: string; instagram?: string; kwai?: string; youtube?: string } } = { socialApiKeys: {} };
 
   constructor() {
     // IDs fixos para estabilidade da sessão em ambiente de dev (banco em memória)
@@ -67,7 +69,7 @@ class InMemoryDB {
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         isActive: true,
         status: 'ACTIVE',
-        rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
+  rules: { cpm: 5, allowedPlatforms: ['tiktok','instagram','kwai','youtube'], requiredHashtags: ['#elox'], requiredMentions: ['@eloxoficial'] },
         rewards: [
           { place: 1, amount: 5000 },
           { place: 2, amount: 3000 },
@@ -188,7 +190,7 @@ class InMemoryDB {
         status,
         rewards: payload.rewards ?? [],
         ...payload,
-        rules: { allowedPlatforms: ['tiktok','instagram','kwai'], ...(payload.rules || {}) },
+  rules: { allowedPlatforms: ['tiktok','instagram','kwai','youtube'], ...(payload.rules || {}) },
         assets: payload.assets,
         phases: payload.phases,
       } as Competition;
@@ -223,6 +225,47 @@ class InMemoryDB {
       const exists = this.participants.some(p => p.clipadorId === clipadorId && p.competitionId === competitionId);
       if (!exists) this.participants.push({ clipadorId, competitionId, joinedAt: new Date() });
       return true;
+    },
+  };
+
+  // Social accounts CRUD (mock)
+  social = {
+    listAll: async () => this.socialAccounts,
+    listForUser: async (clipadorId: string) => {
+      return this.socialAccounts.filter(a => a.clipadorId === clipadorId);
+    },
+    create: async (clipadorId: string, payload: { platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; username: string }) => {
+      // Em produção, criaria via OAuth; aqui simulamos verificação automática
+      const a: SocialAccount = {
+        id: uid('sa_'),
+        clipadorId,
+        platform: payload.platform,
+        username: payload.username,
+        status: 'verified',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.socialAccounts.push(a);
+      return a;
+    },
+    patch: async (id: string, data: Partial<Pick<SocialAccount, 'username' | 'status'>>) => {
+      const a = this.socialAccounts.find(x => x.id === id);
+      if (!a) return null;
+      Object.assign(a, data);
+      a.updatedAt = new Date();
+      return a;
+    },
+    remove: async (id: string) => {
+      const before = this.socialAccounts.length;
+      this.socialAccounts = this.socialAccounts.filter(x => x.id !== id);
+      return this.socialAccounts.length < before;
+    },
+    setStatus: async (id: string, status: 'pending' | 'verified' | 'revoked') => {
+      const a = this.socialAccounts.find(x => x.id === id);
+      if (!a) return null;
+      a.status = status;
+      a.updatedAt = new Date();
+      return a;
     },
   };
 
@@ -330,6 +373,14 @@ class InMemoryDB {
       if (!u || !u.clipador) return null;
       u.clipador.warnings += 1;
       return u.clipador.warnings;
+    },
+  };
+
+  settings = {
+    get: async () => this.settingsStore,
+    updateSocialApis: async (payload: Partial<{ tiktok: string; instagram: string; kwai: string; youtube: string }>) => {
+      this.settingsStore.socialApiKeys = { ...this.settingsStore.socialApiKeys, ...payload };
+      return this.settingsStore.socialApiKeys;
     },
   };
 }

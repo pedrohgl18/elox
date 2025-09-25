@@ -45,12 +45,13 @@ export function sanitizePixKey(value: string | undefined | null): string | undef
 
 // ===== Vídeo: validação de URL e detecção de plataforma =====
 
-export type SocialPlatform = 'tiktok' | 'instagram' | 'kwai';
+export type SocialPlatform = 'tiktok' | 'instagram' | 'kwai' | 'youtube';
 
 const PLATFORM_HOSTS: Record<SocialPlatform, string[]> = {
   tiktok: ['tiktok.com', 'vm.tiktok.com', 'm.tiktok.com'],
   instagram: ['instagram.com', 'www.instagram.com'],
   kwai: ['kwai.com', 'www.kwai.com', 's.kwai.app'],
+  youtube: ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'],
 };
 
 export function detectSocialMediaFromUrl(raw: string): SocialPlatform | null {
@@ -95,6 +96,7 @@ export function validateVideoUrl(raw: string, expectedPlatform?: SocialPlatform)
   try {
     const u = new URL(url);
     const path = u.pathname.toLowerCase();
+    const host = u.hostname.toLowerCase();
     if (platform === 'tiktok') {
       // exemplos: /@user/video/123, /t/ZTxxxx
       if (!path.includes('/video/') && !path.startsWith('/t/')) return { ok: true, platform, url }; // aceitar curto (redirect vm.tiktok)
@@ -108,6 +110,21 @@ export function validateVideoUrl(raw: string, expectedPlatform?: SocialPlatform)
     if (platform === 'kwai') {
       // aceitar domínios de compartilhamento
       // sem regra rígida
+    }
+    if (platform === 'youtube') {
+      // Aceitar:
+      // - youtu.be/{id}
+      // - youtube.com/watch?v={id}
+      // - youtube.com/shorts/{id}
+      if (host.includes('youtu.be')) return { ok: true, platform, url };
+      if (path.startsWith('/shorts/')) return { ok: true, platform, url };
+      if (path.startsWith('/watch')) {
+        const v = u.searchParams.get('v');
+        if (v) return { ok: true, platform, url };
+        return { ok: false, reason: 'Link do YouTube deve conter parâmetro v', platform, url };
+      }
+      // Outros caminhos aceitos condicionalmente (p.ex. /live) não incluídos no MVP
+      return { ok: false, reason: 'Link do YouTube inválido. Use /watch?v= ou /shorts/ ou youtu.be/', platform, url };
     }
   } catch {
     return { ok: false, reason: 'URL inválida', url };

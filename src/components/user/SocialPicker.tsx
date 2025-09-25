@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 
-type Social = 'tiktok' | 'instagram' | 'kwai';
+type Social = 'tiktok' | 'instagram' | 'kwai' | 'youtube';
 
 interface Props {
   value: Social | '';
@@ -44,6 +44,17 @@ const socials: { key: Social; label: string; color: string; icon: React.ReactNod
     icon: (
       <svg viewBox="0 0 64 64" aria-hidden="true" className="h-4 w-4 mr-1">
         <path fill="#FF6B00" d="M47 10c3.9 0 7 3.1 7 7v30c0 3.9-3.1 7-7 7H17c-3.9 0-7-3.1-7-7V17c0-3.9 3.1-7 7-7h30zM24 24a6 6 0 1 0 0 12a6 6 0 0 0 0-12zm16 0a6 6 0 1 0 0 12a6 6 0 0 0 0-12z"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'youtube',
+    label: 'YouTube',
+    color: 'from-red-500 to-rose-500',
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 mr-1">
+        <path fill="#FF0000" d="M23.5 6.2s-.2-1.6-.9-2.3c-.8-.9-1.7-.9-2.1-1C17.5 2.5 12 2.5 12 2.5h0s-5.5 0-8.5.4c-.4 0-1.3.1-2.1 1-.7.7-.9 2.3-.9 2.3S0 8.2 0 10.2v1.6c0 2 .2 4 .2 4s.2 1.6.9 2.3c.8.9 1.9.9 2.4 1 1.7.2 7.5.4 7.5.4s5.5 0 8.5-.4c.4 0 1.3-.1 2.1-1 .7-.7.9-2.3.9-2.3s.2-2 .2-4v-1.6c0-2-.2-4-.2-4z"/>
+        <path fill="#fff" d="M9.75 8.5v6l6-3-6-3z"/>
       </svg>
     ),
   },

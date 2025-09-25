@@ -65,7 +65,7 @@ export interface Competition {
   rules: {
     cpm: number; // Custo Por Mil visualizações
     minViews?: number; // opcional: visualizações mínimas para elegibilidade
-    allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai'>; // redes válidas
+  allowedPlatforms?: Array<'tiktok' | 'instagram' | 'kwai' | 'youtube'>; // redes válidas
     requiredHashtags?: string[]; // hashtags obrigatórias da campanha
     requiredMentions?: string[]; // @menções obrigatórias
   };
@@ -89,4 +89,18 @@ export interface CompetitionParticipant {
   competitionId: string;
   clipadorId: string;
   joinedAt: Date;
+}
+
+export type SocialPlatform = 'tiktok' | 'instagram' | 'kwai' | 'youtube';
+export type VerificationStatus = 'pending' | 'verified' | 'revoked';
+
+export interface SocialAccount {
+  id: string;
+  clipadorId: string; // usuário EloX
+  platform: SocialPlatform;
+  username: string; // @perfil
+  accessToken?: string; // armazenado apenas quando necessário (mock/in-memory)
+  status: VerificationStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }

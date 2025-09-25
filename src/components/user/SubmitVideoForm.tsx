@@ -12,7 +12,7 @@ import { SocialPicker } from './SocialPicker';
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
   const [url, setUrl] = useState('');
-  const [social, setSocial] = useState<'tiktok' | 'instagram' | 'kwai' | ''>('');
+  const [social, setSocial] = useState<'tiktok' | 'instagram' | 'kwai' | 'youtube' | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium">Rede Social</label>
-        <SocialPicker value={social} onChange={setSocial as any} />
+  <SocialPicker value={social as any} onChange={setSocial as any} />
       </div>
 
       {/* Seletor de Campanha atual (somente as que o usuário está inscrito) */}

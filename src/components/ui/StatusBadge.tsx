@@ -7,6 +7,8 @@ const colorMap: Record<string, string> = {
   processed: 'bg-green-500/15 text-green-300',
   failed: 'bg-red-500/15 text-red-300',
   active: 'bg-blue-500/15 text-blue-300',
+  verified: 'bg-green-500/15 text-green-300',
+  revoked: 'bg-red-500/15 text-red-300',
 };
 
 export function StatusBadge({ label }: { label: string }) {
