@@ -12,7 +12,9 @@ import { DataTable } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { formatCurrencyBRL } from '@/lib/format';
 import { Video } from '@/lib/types';
-import { Plus, Video as VideoIcon, Eye, DollarSign } from 'lucide-react';
+import { Plus, Video as VideoIcon, Eye, DollarSign, CheckCircle2 } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
+import { headers } from 'next/headers';
 
 export default async function VideosPage() {
   const session: any = await getServerSession(authOptions as any);
@@ -36,6 +38,10 @@ export default async function VideosPage() {
   }
   
   const videos: Video[] = await db.video.listForUser(user);
+
+  // Notificação simples via querystring (?notice=approved|rejected)
+  const h = headers();
+  const notice = h.get('x-next-url')?.includes('notice=approved') ? 'approved' : (h.get('x-next-url')?.includes('notice=rejected') ? 'rejected' : null);
   
   // Estatísticas dos vídeos
   const totalVideos = videos.length;
@@ -93,6 +99,15 @@ export default async function VideosPage() {
           <span>Enviar Vídeo</span>
         </Button>
       </div>
+
+      {/* Notificação */}
+      {notice && (
+        <div className="mb-4">
+          <Alert variant={notice === 'approved' ? 'success' : 'warning'}
+            title={notice === 'approved' ? 'Vídeo aprovado' : 'Vídeo rejeitado'}
+            description={notice === 'approved' ? 'Seu vídeo foi aprovado e começará a contar métricas.' : 'Seu vídeo foi rejeitado. Revise as diretrizes e tente novamente.'} />
+        </div>
+      )}
 
       {/* Estatísticas */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
