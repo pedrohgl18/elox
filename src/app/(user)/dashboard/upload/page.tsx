@@ -8,7 +8,6 @@ import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
 import { Upload, Video, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
-import { PreviewSidebar } from '@/components/user/UploadPreviewSidebar';
 import { Video as VideoType } from '@/lib/types';
 
 export default async function UploadPage() {
@@ -117,8 +116,7 @@ export default async function UploadPage() {
 
           {/* Sidebar com Informações */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Preview em tempo real */}
-            <PreviewSidebar />
+            {/* (Preview removido temporariamente) */}
 
             {/* Estatísticas Rápidas */}
             <Card>
