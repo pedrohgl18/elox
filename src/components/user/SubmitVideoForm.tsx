@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
+import { useToast } from '@/components/ui/Toast';
 import { CompetitionsAPI, VideosAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { detectSocialMediaFromUrl, validateVideoUrl } from '@/lib/validation';
@@ -11,6 +12,7 @@ import { SocialPicker } from './SocialPicker';
 
 export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
+  const { show } = useToast();
   const [url, setUrl] = useState('');
   const [social, setSocial] = useState<'tiktok' | 'instagram' | 'kwai' | 'youtube' | ''>('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
+  setSuccess(null);
     if (!url) {
       setError('Informe a URL do vídeo.');
       return;
@@ -53,15 +55,17 @@ export function SubmitVideoForm({ onSubmitted }: { onSubmitted?: () => void }) {
     }
     setLoading(true);
     try {
-      await VideosAPI.create({ url: check.url, socialMedia: chosen as any, competitionId: competitionId || null });
-  setSuccess('Vídeo enviado com sucesso!');
+    await VideosAPI.create({ url: check.url, socialMedia: chosen as any, competitionId: competitionId || null });
+    setSuccess('Vídeo enviado com sucesso!');
+    show('Vídeo enviado com sucesso! Aguarde a validação.', { type: 'success' });
       setUrl('');
       setSocial('');
       setCompetitionId('');
       onSubmitted?.();
   router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Falha ao enviar vídeo');
+  setError(err.message || 'Falha ao enviar vídeo');
+  show(err.message || 'Falha ao enviar vídeo', { type: 'error' });
     } finally {
       setLoading(false);
     }

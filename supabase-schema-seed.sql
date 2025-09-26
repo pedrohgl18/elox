@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS public.competitions (
   is_active boolean DEFAULT true,
   status text CHECK (status IN ('SCHEDULED','ACTIVE','COMPLETED')),
   allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai']::text[],
+  required_hashtags text[] DEFAULT ARRAY[]::text[],
+  required_mentions text[] DEFAULT ARRAY[]::text[],
   created_at timestamptz DEFAULT now()
 );
 
@@ -95,6 +97,26 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON public.notifications (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications (user_id) WHERE read_at IS NULL;
+
+-- Contas sociais conectadas via OAuth (armazenar tokens para coleta de posts)
+CREATE TABLE IF NOT EXISTS public.social_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  provider text NOT NULL CHECK (provider IN ('tiktok','instagram','kwai','youtube')),
+  provider_account_id text NOT NULL,
+  username text,
+  access_token text,
+  refresh_token text,
+  expires_at timestamptz,
+  scope text,
+  status text DEFAULT 'verified',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, provider)
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_accounts_user ON public.social_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_provider ON public.social_accounts(provider);
 
 -- Índice único para enforcement case-insensitive (evita username duplicado apenas por caixa)
 DO $$

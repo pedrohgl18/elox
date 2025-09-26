@@ -1,5 +1,5 @@
 import { getSupabaseClient, getSupabaseServiceClient } from './supabaseClient';
-import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador, Notification, NotificationType } from './types';
+import { Competition, Payment, PaymentStatus, Video, VideoStatus, Clipador, Notification, NotificationType, SocialAccount } from './types';
 import { AuthUserRecord, Role } from './database';
 import bcrypt from 'bcryptjs';
 
@@ -48,6 +48,8 @@ interface CompetitionRow {
   is_active: boolean;
   status: Competition['status'];
   allowed_platforms: string[];
+  required_hashtags: string[] | null;
+  required_mentions: string[] | null;
   created_at: string;
 }
 
@@ -118,7 +120,7 @@ function mapCompetition(c: CompetitionRow, rewards: CompetitionRewardRow[]): Com
     endDate: new Date(c.end_date),
     isActive: c.is_active,
     status: c.status,
-  rules: { allowedPlatforms: c.allowed_platforms as any },
+  rules: { allowedPlatforms: c.allowed_platforms as any, requiredHashtags: (c.required_hashtags || undefined) as any, requiredMentions: (c.required_mentions || undefined) as any },
     rewards: rewards
       .sort((a, b) => a.from_place - b.from_place)
       .map(r => ({ fromPlace: r.from_place, toPlace: r.to_place, amount: Number(r.amount), platform: r.platform ?? undefined, description: r.description ?? undefined })),
@@ -158,6 +160,30 @@ export function createSupabaseAdapter() {
         const { data, error } = await supabase.from('profiles').select('*').or(`id.eq.${key},email.eq.${key}`).limit(1).maybeSingle();
         if (error || !data) return null;
         return mapProfile(data as ProfileRow);
+      },
+      // Cria ou retorna usuário (clipador) a partir de um login OAuth
+      findOrCreateOAuthUser: async (payload: { email: string; username?: string; name?: string }) => {
+        const email = payload.email.toLowerCase();
+        let found = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+        if (!found.error && found.data) return mapProfile(found.data as ProfileRow);
+        // gerar username único
+        const base = (payload.username || payload.name || email.split('@')[0] || 'user').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20) || 'user';
+        let candidate = base;
+        for (let i = 0; i < 10; i++) {
+          const exists = await supabase.from('profiles').select('id').eq('username', candidate).maybeSingle();
+          if (exists.error || !exists.data) break;
+          candidate = `${base}${Math.floor(Math.random() * 1000)}`.slice(0, 20);
+        }
+        const insert = {
+          email,
+          username: candidate,
+          role: 'clipador' as Role,
+          password_hash: null as any,
+          is_active: true,
+        };
+        const created = await svc.from('profiles').insert(insert).select('*').single();
+        if (created.error || !created.data) throw created.error;
+        return mapProfile(created.data as ProfileRow);
       },
     },
     notifications: {
@@ -222,6 +248,73 @@ export function createSupabaseAdapter() {
       },
       markAllRead: async (userId: string) => {
         await svc.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', userId).is('read_at', null);
+        return true;
+      },
+    },
+    social: {
+      listForUser: async (clipadorId: string) => {
+        const { data, error } = await supabase.from('social_accounts').select('*').eq('user_id', clipadorId);
+        if (error || !data) return [] as SocialAccount[];
+        return (data as any[]).map(row => ({
+          id: row.id,
+          clipadorId: row.user_id,
+          platform: row.provider,
+          providerAccountId: row.provider_account_id ?? undefined,
+          username: row.username ?? '',
+          accessToken: undefined, // não expor para client
+          refreshToken: undefined,
+          expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+          scope: row.scope ?? undefined,
+          status: (row.status || 'verified') as any,
+          createdAt: new Date(row.created_at),
+          updatedAt: new Date(row.updated_at),
+        } satisfies SocialAccount));
+      },
+      getAccountSecrets: async (clipadorId: string, platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube') => {
+        const svcCli = getSupabaseServiceClient() || supabase;
+        const { data, error } = await svcCli
+          .from('social_accounts')
+          .select('access_token,refresh_token,expires_at,provider_account_id,username')
+          .eq('user_id', clipadorId)
+          .eq('provider', platform)
+          .maybeSingle();
+        if (error || !data) return null;
+        return {
+          accessToken: (data as any).access_token as string | null,
+          refreshToken: (data as any).refresh_token as string | null,
+          expiresAt: (data as any).expires_at ? new Date((data as any).expires_at as string) : null,
+          providerAccountId: (data as any).provider_account_id as string | null,
+          username: (data as any).username as string | null,
+        };
+      },
+      upsertOAuthAccount: async (clipadorId: string, payload: {
+        platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube';
+        providerAccountId?: string;
+        username?: string;
+        accessToken?: string;
+        refreshToken?: string;
+        expiresAt?: Date | number | null;
+        scope?: string | null;
+      }) => {
+        const now = new Date().toISOString();
+        const upsert = {
+          user_id: clipadorId,
+          provider: payload.platform,
+          provider_account_id: payload.providerAccountId ?? null,
+          username: payload.username ?? null,
+          access_token: payload.accessToken ?? null,
+          refresh_token: payload.refreshToken ?? null,
+          expires_at: payload.expiresAt ? new Date(payload.expiresAt as any).toISOString() : null,
+          scope: payload.scope ?? null,
+          status: 'verified',
+          updated_at: now,
+        } as any;
+        const { data, error } = await svc
+          .from('social_accounts')
+          .upsert(upsert, { onConflict: 'user_id,provider' })
+          .select('*')
+          .single();
+        if (error || !data) return null;
         return true;
       },
     },
@@ -469,6 +562,8 @@ export function createSupabaseAdapter() {
           is_active: payload.isActive ?? true,
           status,
           allowed_platforms: payload.rules?.allowedPlatforms ?? ['tiktok','instagram','kwai','youtube'],
+          required_hashtags: payload.rules?.requiredHashtags ?? null,
+          required_mentions: payload.rules?.requiredMentions ?? null,
         };
         const { data, error } = await supabase.from('competitions').insert(insert).select('*').single();
         if (error || !data) throw error;
@@ -492,8 +587,10 @@ export function createSupabaseAdapter() {
         if (data.name) update.name = data.name;
         if (data.startDate) update.start_date = data.startDate.toISOString().slice(0,10);
         if (data.endDate) update.end_date = data.endDate.toISOString().slice(0,10);
-        if (data.isActive !== undefined) update.is_active = data.isActive;
-  if (data.rules?.allowedPlatforms) update.allowed_platforms = data.rules.allowedPlatforms;
+    if (data.isActive !== undefined) update.is_active = data.isActive;
+    if (data.rules?.allowedPlatforms) update.allowed_platforms = data.rules.allowedPlatforms;
+    if (data.rules?.requiredHashtags) update.required_hashtags = data.rules.requiredHashtags;
+    if (data.rules?.requiredMentions) update.required_mentions = data.rules.requiredMentions;
         if (Object.keys(update).length === 0) return null;
         const { data: updated, error } = await supabase.from('competitions').update(update).eq('id', id).select('*').single();
         if (error || !updated) return null;

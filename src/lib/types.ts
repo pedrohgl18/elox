@@ -98,9 +98,13 @@ export type VerificationStatus = 'pending' | 'verified' | 'revoked';
 export interface SocialAccount {
   id: string;
   clipadorId: string; // usuário EloX
-  platform: SocialPlatform;
-  username: string; // @perfil
-  accessToken?: string; // armazenado apenas quando necessário (mock/in-memory)
+  platform: SocialPlatform; // provider
+  providerAccountId?: string; // id da conta no provedor (channel id, user id, etc.)
+  username: string; // @perfil ou nome público
+  accessToken?: string; // token de acesso (não expor ao client quando possível)
+  refreshToken?: string;
+  expiresAt?: Date;
+  scope?: string;
   status: VerificationStatus;
   createdAt: Date;
   updatedAt: Date;

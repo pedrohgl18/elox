@@ -30,6 +30,7 @@ export const PaymentsAPI = {
 export const CompetitionsAPI = {
   list: () => api<any[]>('/api/competitions'),
   listEnrolled: () => api<any[]>('/api/competitions/enrolled'),
+  listEnrolledActive: () => api<any[]>('/api/competitions/enrolled-active'),
   create: (payload: any) => api('/api/competitions', { method: 'POST', body: JSON.stringify(payload) }),
   get: (id: string) => api<any>(`/api/competitions/${id}`),
   patch: (id: string, payload: any) => api(`/api/competitions/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
@@ -42,4 +43,6 @@ export const SocialAccountsAPI = {
   patch: (id: string, payload: { username?: string }): Promise<SocialAccount> =>
     api<SocialAccount>(`/api/social-accounts/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   remove: (id: string): Promise<{ success: boolean }> => api<{ success: boolean }>(`/api/social-accounts/${id}`, { method: 'DELETE' }),
+  listPosts: (platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube', hashtag: string): Promise<{ platform: string; items: any[] }> =>
+    api(`/api/social-accounts/posts?platform=${encodeURIComponent(platform)}&hashtag=${encodeURIComponent(hashtag)}`),
 };

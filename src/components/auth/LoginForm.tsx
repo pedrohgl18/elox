@@ -50,18 +50,22 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div>
-        <label className="mb-1 block text-sm font-medium">Email</label>
-        <Input type="email" value={email} onChange={onEmailChange} required />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">Senha</label>
-        <Input type="password" value={password} onChange={onPasswordChange} required />
-      </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? 'Entrando...' : 'Entrar'}
-      </Button>
-    </form>
+    <div className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">Email</label>
+          <Input type="email" value={email} onChange={onEmailChange} required />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Senha</label>
+          <Input type="password" value={password} onChange={onPasswordChange} required />
+        </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? 'Entrando...' : 'Entrar'}
+        </Button>
+      </form>
+
+      {/* Login social removido: vinculação de contas agora é feita dentro do dashboard */}
+    </div>
   );
 }

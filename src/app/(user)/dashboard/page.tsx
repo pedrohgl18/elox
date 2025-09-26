@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import React from 'react';
 import { BarChart } from '@/components/charts/BarChart';
 import { DashboardTables } from '@/components/dashboard/DashboardTables';
-import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
+// import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
 import { PaymentRequestForm } from '@/components/user/PaymentRequestForm';
 import { formatCurrencyBRL } from '@/lib/format';
 import { getServerSession } from 'next-auth/next';
@@ -17,6 +17,8 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import Link from 'next/link';
+import { ConnectedSocialAccounts } from '@/components/user/ConnectedSocialAccounts';
+import { SocialOAuthButtons } from '@/components/user/SocialOAuthButtons';
 
 export default async function UserDashboard() {
   const session: any = await getServerSession(authOptions as any);
@@ -115,7 +117,7 @@ export default async function UserDashboard() {
         )}
       </div>
 
-      {/* Charts and Forms Section */}
+      {/* Charts and Social Accounts Section */}
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
         <Card className="lg:col-span-2">
           <CardHeader>Distribuição por Rede Social</CardHeader>
@@ -124,9 +126,14 @@ export default async function UserDashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>Enviar Novo Vídeo</CardHeader>
+          <CardHeader>Conectar Contas Sociais</CardHeader>
           <CardContent>
-            <SubmitVideoForm />
+            <div className="space-y-4">
+              <p className="text-sm text-slate-400">Conecte sua conta para listar suas postagens e enviar para competições.</p>
+              <SocialOAuthButtons providerOrder={["instagram","tiktok","kwai","youtube"]} />
+              <ConnectedSocialAccounts />
+              {/* Busca e envio de posts fica na página Enviar Vídeos */}
+            </div>
           </CardContent>
         </Card>
       </div>

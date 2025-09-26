@@ -104,6 +104,30 @@ class InMemoryDB {
       console.log(`getByIdOrEmail: ${idOrEmail}, found user:`, user ? { id: user.id, email: user.email, role: user.role } : 'null');
       return user || null;
     },
+    findOrCreateOAuthUser: async (payload: { email: string; username?: string; name?: string }) => {
+      const email = payload.email.toLowerCase();
+      let user = this.users.find((u) => u.email === email);
+      if (user) return user;
+      const base = (payload.username || payload.name || email.split('@')[0] || 'user').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20) || 'user';
+      let candidate = base;
+      for (let i = 0; i < 10; i++) {
+        if (!this.users.some((u) => u.username === candidate)) break;
+        candidate = `${base}${Math.floor(Math.random() * 1000)}`.slice(0, 20);
+      }
+      const id = uid('u_');
+      const clipador: Clipador = {
+        id,
+        username: candidate,
+        email,
+        isActive: true,
+        warnings: 0,
+        totalEarnings: 0,
+        createdAt: new Date(),
+      };
+      user = { id, email, username: candidate, password: '', role: 'clipador', clipador };
+      this.users.push(user);
+      return user;
+    },
   };
 
   video = {
@@ -266,6 +290,36 @@ class InMemoryDB {
       a.status = status;
       a.updatedAt = new Date();
       return a;
+    },
+    upsertOAuthAccount: async (clipadorId: string, payload: { platform: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; providerAccountId?: string; username?: string; accessToken?: string; refreshToken?: string; expiresAt?: Date | number | null; scope?: string | null; }) => {
+      const existing = this.socialAccounts.find(a => a.clipadorId === clipadorId && a.platform === payload.platform);
+      if (existing) {
+        existing.providerAccountId = payload.providerAccountId || existing.providerAccountId;
+        existing.username = payload.username || existing.username;
+        existing.accessToken = payload.accessToken || existing.accessToken;
+        existing.refreshToken = payload.refreshToken || existing.refreshToken;
+        existing.expiresAt = payload.expiresAt ? new Date(payload.expiresAt as any) : existing.expiresAt;
+        existing.scope = payload.scope || existing.scope;
+        existing.updatedAt = new Date();
+        existing.status = 'verified';
+        return true;
+      }
+      const a: SocialAccount = {
+        id: uid('sa_'),
+        clipadorId,
+        platform: payload.platform,
+        providerAccountId: payload.providerAccountId,
+        username: payload.username || '',
+        accessToken: payload.accessToken,
+        refreshToken: payload.refreshToken,
+        expiresAt: payload.expiresAt ? new Date(payload.expiresAt as any) : undefined,
+        scope: payload.scope || undefined,
+        status: 'verified',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.socialAccounts.push(a);
+      return true;
     },
   };
 
