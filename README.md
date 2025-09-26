@@ -64,3 +64,67 @@ npm run dev
 - `GET /api/competitions` — lista competições
 - `POST /api/competitions` — cria competição (admin)
 - `PATCH /api/competitions/:id` — atualiza competição (admin)
+
+## Integração Social e Fluxo de Envio por Hashtag
+
+### Visão geral
+
+- Conexão de contas sociais acontece dentro do Dashboard do usuário (não no login).
+- O envio de posts por hashtag acontece exclusivamente na página "Enviar Vídeos".
+- Admin define hashtags obrigatórias por competição; usamos essas hashtags para filtrar posts do Instagram do usuário conectado.
+
+### UI
+
+- Dashboard do Usuário:
+  - Seção "Conectar Contas Sociais" com botões de OAuth e lista de contas conectadas.
+  - Sem envio de posts nessa tela.
+
+- Página Enviar Vídeos (`/dashboard/upload`):
+  - Form padrão para colar URL e selecionar campanha.
+  - Seção "Selecionar Post do Instagram por Hashtag":
+    - Carrega competições ativas em que o usuário está inscrito.
+    - Sugere a hashtag obrigatória da competição (quando houver).
+    - Lista posts do Instagram do usuário com essa hashtag e permite enviar diretamente para a competição escolhida.
+
+### Rotas de API novas
+
+- `GET /api/competitions/enrolled-active` — lista competições em que o usuário está inscrito e ativas por data.
+- `GET /api/social-accounts` — lista contas sociais conectadas do usuário.
+- `POST /api/social-accounts` — adiciona/atualiza conta (MVP/mock; produção via OAuth).
+- `DELETE /api/social-accounts/:id` — remove conta (MVP/mock).
+- `GET /api/social-accounts/posts?platform=instagram&hashtag=%23xxx` — lista posts do Instagram do usuário autenticado filtrando por hashtag.
+- `POST /api/videos` — agora aceita `competitionId` e valida inscrição do usuário nessa competição.
+
+### OAuth Instagram
+
+- Início: `GET /api/social-accounts/oauth/instagram/start`
+- Callback: `GET /api/social-accounts/oauth/instagram/callback`
+- Escopos: `user_profile,user_media` (Instagram Basic Display API/Graph)
+
+### Variáveis de Ambiente (Netlify)
+
+Defina as variáveis no painel do Netlify (Site settings → Build & deploy → Environment):
+
+- `INSTAGRAM_CLIENT_ID`
+- `INSTAGRAM_CLIENT_SECRET`
+- `NEXTAUTH_SECRET` (se usar NextAuth)
+- `NEXTAUTH_URL` (ex.: `https://seu-site.netlify.app`)
+
+Callback autorizado no Instagram:
+
+- `{BASE_URL}/api/social-accounts/oauth/instagram/callback`
+
+Observações de Deploy no Netlify:
+
+- Este projeto usa App Router do Next.js e rotas de API; o Netlify Netlify Adapter para Next cuida das funções serverless automaticamente.
+- Certifique-se de que `netlify.toml` está presente e a versão de Node no Netlify seja compatível com a usada localmente.
+
+### Banco de dados / Tokens
+
+- Tokens de acesso do Instagram são armazenados na tabela `social_accounts` (via Supabase), e nunca expostos ao client diretamente.
+- A listagem de posts por hashtag é feita server-side usando o token armazenado.
+
+### Experiência de Usuário
+
+- Mensagens de sucesso/erro aparecem como toasts globais.
+- O envio por hashtag exige que o usuário esteja conectado com o Instagram e inscrito na competição selecionada.
