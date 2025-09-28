@@ -56,9 +56,11 @@ export async function GET(req: Request) {
     if (platform === 'instagram') {
       const secrets = await (db.social.getAccountSecrets?.(user.id, 'instagram'));
       if (!secrets?.accessToken) return NextResponse.json({ error: 'Conta Instagram sem token. Conecte novamente.' }, { status: 400 });
+      if (!secrets?.providerAccountId) return NextResponse.json({ error: 'Conta Instagram sem IG User ID. Refaça a conexão.' }, { status: 400 });
 
-      // Lista mídia do usuário; filter client-side por hashtag em caption
-      const mediaUrl = new URL('https://graph.instagram.com/me/media');
+      // Instagram Graph API via Facebook: /{ig-user-id}/media com token de Página
+      const igUserId = secrets.providerAccountId;
+      const mediaUrl = new URL(`https://graph.facebook.com/v18.0/${igUserId}/media`);
       mediaUrl.searchParams.set('fields', 'id,caption,permalink,media_type,media_url,thumbnail_url,timestamp');
       mediaUrl.searchParams.set('access_token', secrets.accessToken);
       const mResp = await fetch(mediaUrl.toString());

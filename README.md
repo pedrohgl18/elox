@@ -2,7 +2,9 @@
 
 Plataforma de gamificação e monetização para clipadores.
 
+ 
 ## Stack
+
 - Next.js (App Router) + TypeScript
 - Tailwind CSS
 - Zustand
@@ -18,13 +20,13 @@ Plataforma de gamificação e monetização para clipadores.
 cd "c:\Users\Administrator\Downloads\EloX"; npm install
 ```
 
-2. Rode o servidor de desenvolvimento:
+1. Rode o servidor de desenvolvimento:
 
 ```powershell
 npm run dev
 ```
 
-3. Acesse em http://localhost:3000
+1. Acesse em <http://localhost:3000>
 
 ## Estrutura de pastas
 
@@ -33,7 +35,9 @@ npm run dev
 - `src/lib` — tipos, stores, utilitários, auth
 - `src/styles` — estilos globais (Tailwind)
 
+ 
 ## Scripts
+
 - `npm run dev` — desenvolvimento
 - `npm run build` — build de produção
 - `npm run start` — iniciar app em produção
@@ -41,7 +45,9 @@ npm run dev
 - `npm run format` — formatar com Prettier
 - `npm run typecheck` — checagem de tipos
 
+ 
 ## Notas
+
 - Configure as variáveis de ambiente do NextAuth em `.env.local` quando for ativar provedores.
 - O arquivo `src/lib/types.ts` concentra os modelos de dados principais.
 - Documentação de banco de dados e schema: ver `DATABASE.md` (configuração via Supabase web, sem CLI).
@@ -95,22 +101,24 @@ npm run dev
 - `GET /api/social-accounts/posts?platform=instagram&hashtag=%23xxx` — lista posts do Instagram do usuário autenticado filtrando por hashtag.
 - `POST /api/videos` — agora aceita `competitionId` e valida inscrição do usuário nessa competição.
 
-### OAuth Instagram
+### OAuth Instagram (Instagram Graph com Facebook Login)
 
 - Início: `GET /api/social-accounts/oauth/instagram/start`
 - Callback: `GET /api/social-accounts/oauth/instagram/callback`
-- Escopos: `user_profile,user_media` (Instagram Basic Display API/Graph)
+- Fluxo: Facebook Login → listar Páginas do usuário → obter `instagram_business_account` e token de Página → IG User ID.
+- Permissões mínimas: `instagram_basic`, `pages_show_list` (considere `pages_read_engagement` conforme o caso).
+- Pré-requisito: conta Instagram do usuário deve ser Business/Creator e vinculada a uma Página do Facebook.
 
 ### Variáveis de Ambiente (Netlify)
 
 Defina as variáveis no painel do Netlify (Site settings → Build & deploy → Environment):
 
-- `INSTAGRAM_CLIENT_ID`
-- `INSTAGRAM_CLIENT_SECRET`
+- `FACEBOOK_APP_ID` (ou `INSTAGRAM_CLIENT_ID` para compatibilidade)
+- `FACEBOOK_APP_SECRET` (ou `INSTAGRAM_CLIENT_SECRET`)
 - `NEXTAUTH_SECRET` (se usar NextAuth)
 - `NEXTAUTH_URL` (ex.: `https://seu-site.netlify.app`)
 
-Callback autorizado no Instagram:
+Redirect URI no Facebook Login:
 
 - `{BASE_URL}/api/social-accounts/oauth/instagram/callback`
 

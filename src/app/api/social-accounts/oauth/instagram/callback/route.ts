@@ -14,59 +14,47 @@ export async function GET(req: Request) {
   if (error) return NextResponse.redirect(`${config.baseUrl}/dashboard?oauth=instagram_error`);
   if (!code) return NextResponse.redirect(`${config.baseUrl}/dashboard?oauth=instagram_missing_code`);
 
-  const clientId = process.env.INSTAGRAM_CLIENT_ID!;
-  const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET!;
+  const appId = process.env.FACEBOOK_APP_ID || process.env.INSTAGRAM_CLIENT_ID!;
+  const appSecret = process.env.FACEBOOK_APP_SECRET || process.env.INSTAGRAM_CLIENT_SECRET!;
   const redirectUri = `${config.baseUrl}/api/social-accounts/oauth/instagram/callback`;
 
   try {
-    // 1) Troca code -> short-lived token
-    const tokenResp = await fetch('https://api.instagram.com/oauth/access_token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code,
-      }),
-    });
+    // 1) Troca code -> access_token do Facebook Login (usuário)
+    const tokenUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token');
+    tokenUrl.searchParams.set('client_id', appId);
+    tokenUrl.searchParams.set('client_secret', appSecret);
+    tokenUrl.searchParams.set('redirect_uri', redirectUri);
+    tokenUrl.searchParams.set('code', code);
+    const tokenResp = await fetch(tokenUrl.toString());
     const tokenJson = await tokenResp.json();
-    if (!tokenResp.ok) throw new Error(tokenJson.error_message || 'instagram access_token error');
+    if (!tokenResp.ok) throw new Error(tokenJson.error?.message || 'facebook access_token error');
+    const userAccessToken = tokenJson.access_token as string;
 
-    const shortToken = tokenJson.access_token as string;
-    const userId = tokenJson.user_id as string;
+    // 2) Lista Páginas do usuário e encontra página com instagram_business_account
+    const pagesResp = await fetch(`https://graph.facebook.com/v18.0/me/accounts?fields=name,access_token,instagram_business_account&access_token=${encodeURIComponent(userAccessToken)}`);
+    const pagesJson = await pagesResp.json();
+    if (!pagesResp.ok) throw new Error(pagesJson.error?.message || 'facebook pages error');
+    const pages = (pagesJson.data || []).filter((p: any) => p.instagram_business_account?.id && p.access_token);
+    if (!pages.length) throw new Error('Nenhuma Página com conta do Instagram vinculada foi encontrada. Converta sua conta para Business/Creator e vincule a uma Página do Facebook.');
+    const page = pages[0];
+    const pageAccessToken = page.access_token as string;
+    const igUserId = page.instagram_business_account.id as string;
 
-    // 2) Troca short -> long-lived token
-    const llUrl = new URL('https://graph.instagram.com/access_token');
-    llUrl.searchParams.set('grant_type', 'ig_exchange_token');
-    llUrl.searchParams.set('client_secret', clientSecret);
-    llUrl.searchParams.set('access_token', shortToken);
-    const llResp = await fetch(llUrl.toString());
-    const llJson = await llResp.json();
-    if (!llResp.ok) throw new Error(llJson.error?.message || 'instagram long-lived token error');
-    const accessToken = llJson.access_token as string;
-    const expiresIn = Number(llJson.expires_in || 60 * 60 * 24 * 60); // segundos
-    const expiresAt = new Date(Date.now() + expiresIn * 1000);
+    // 3) Busca username do IG
+    const igResp = await fetch(`https://graph.facebook.com/v18.0/${igUserId}?fields=username&access_token=${encodeURIComponent(pageAccessToken)}`);
+    const igJson = await igResp.json();
+    if (!igResp.ok) throw new Error(igJson.error?.message || 'instagram profile error');
+    const username = igJson.username as string;
 
-    // 3) Busca perfil para obter username
-    const meUrl = new URL('https://graph.instagram.com/me');
-    meUrl.searchParams.set('fields', 'id,username');
-    meUrl.searchParams.set('access_token', accessToken);
-    const meResp = await fetch(meUrl.toString());
-    const meJson = await meResp.json();
-    if (!meResp.ok) throw new Error(meJson.error?.message || 'instagram profile error');
-    const username = meJson.username as string;
-
-    // 4) Upsert da conta social no banco
+    // 4) Upsert da conta social no banco com IG user id e page token
     await db.social.upsertOAuthAccount((session.user as any).id, {
       platform: 'instagram',
-      providerAccountId: userId,
+      providerAccountId: igUserId,
       username,
-      accessToken,
+      accessToken: pageAccessToken, // token de página para chamadas ao IG Graph
       refreshToken: null as any,
-      expiresAt,
-      scope: 'user_profile,user_media',
+      expiresAt: null as any,
+      scope: 'instagram_basic,pages_show_list',
     });
 
     return NextResponse.redirect(`${config.baseUrl}/dashboard?oauth=instagram_ok`);
