@@ -14,6 +14,7 @@ export function AdminApiKeysForm() {
   const [success, setSuccess] = React.useState<string | null>(null);
   const [igCookieInput, setIgCookieInput] = React.useState('');
   const [igCookieSet, setIgCookieSet] = React.useState(false);
+  const [igStatusLoading, setIgStatusLoading] = React.useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -30,7 +31,28 @@ export function AdminApiKeysForm() {
     }
   };
 
-  React.useEffect(() => { load(); }, []);
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  React.useEffect(() => {
+    // Carrega estado de sessão do Instagram
+    let mounted = true;
+    (async () => {
+      try {
+        setIgStatusLoading(true);
+        const res = await fetch('/api/admin/instagram-session');
+        if (!res.ok) throw new Error('Falha ao verificar sessão');
+        const j = await res.json();
+        if (mounted) setIgCookieSet(!!j.hasSession);
+      } catch {
+        if (mounted) setIgCookieSet(false);
+      } finally {
+        if (mounted) setIgStatusLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +98,7 @@ export function AdminApiKeysForm() {
             <div className="text-sm font-medium">Sessão do Instagram (cookie)</div>
             <div className="text-xs text-slate-400">Cole a string de cookies da sua sessão (ds_user_id, sessionid, csrftoken...). Não será exibido após salvar.</div>
           </div>
-          <div className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-200">{igCookieSet ? 'Configurado' : 'Não definido'}</div>
+          <div className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-200">{igStatusLoading ? 'Verificando…' : (igCookieSet ? 'Configurado' : 'Não definido')}</div>
         </div>
         <div className="flex gap-2">
           <Input value={igCookieInput} onChange={(e) => setIgCookieInput(e.currentTarget.value)} placeholder="ds_user_id=...; sessionid=...; csrftoken=..." />

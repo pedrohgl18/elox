@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/Select';
 import { revalidatePath } from 'next/cache';
 import { Input } from '@/components/ui/Input';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
-import { cookies } from 'next/headers';
+import ClientActions from './ClientActions';
 
 export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string } }) {
   const session: any = await getServerSession(authOptions as any);
@@ -157,28 +157,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                         </form>
                       )}
                       {v.socialMedia === 'instagram' && (
-                        <form
-                          action={async () => {
-                            'use server';
-                            try {
-                              const cookieHeader = cookies().toString();
-                              await fetch(`/api/admin/instagram-collect`, {
-                                method: 'POST',
-                                headers: {
-                                  'content-type': 'application/json',
-                                  // Encaminha cookies da sessão para a rota API (NextAuth)
-                                  cookie: cookieHeader,
-                                },
-                                // Evita cache e garante execução server-side
-                                cache: 'no-store',
-                                body: JSON.stringify({ url: v.url }),
-                              } as any);
-                            } catch {}
-                            revalidatePath('/admin/videos');
-                          }}
-                        >
-                          <Button size="sm" variant="outline">Coletar métricas (sessão)</Button>
-                        </form>
+                        <ClientActions url={v.url} />
                       )}
                     </td>
                   </tr>
