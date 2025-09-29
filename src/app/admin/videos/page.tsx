@@ -10,7 +10,6 @@ import { Video } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
 import { revalidatePath } from 'next/cache';
 import { Input } from '@/components/ui/Input';
-import { fetchReelPublicInsights } from '@/lib/instagramPublic';
 
 export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string } }) {
   const session: any = await getServerSession(authOptions as any);
@@ -136,18 +135,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                           <Button size="sm" variant="outline">Rejeitar</Button>
                         </form>
                       )}
-                      {v.socialMedia === 'instagram' && (
-                        <form action={async () => {
-                          'use server';
-                          try {
-                            const ins = await fetchReelPublicInsights(v.url, { strong: true });
-                            await db.video.updatePublicMeta(v.id, { views: ins.views ?? undefined, hashtags: ins.hashtags, mentions: ins.mentions });
-                          } catch {}
-                          revalidatePath('/admin/videos');
-                        }}>
-                          <Button size="sm" variant="outline">Atualizar métricas</Button>
-                        </form>
-                      )}
+                      {/* Botão de atualizar métricas removido enquanto insights públicos estão desativados */}
                     </td>
                   </tr>
                 ))}

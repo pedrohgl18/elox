@@ -23,7 +23,7 @@ class InMemoryDB {
   competitions: Competition[] = [];
   participants: { competitionId: string; clipadorId: string; joinedAt: Date }[] = [];
   socialAccounts: SocialAccount[] = [];
-  settingsStore: { socialApiKeys: { tiktok?: string; instagram?: string; kwai?: string; youtube?: string }; instagramSessionCookie?: string | null } = { socialApiKeys: {}, instagramSessionCookie: null };
+  settingsStore: { socialApiKeys: { tiktok?: string; instagram?: string; kwai?: string; youtube?: string } } = { socialApiKeys: {} };
 
   constructor() {
     // IDs fixos para estabilidade da sessão em ambiente de dev (banco em memória)
@@ -441,18 +441,11 @@ class InMemoryDB {
   };
 
   settings = {
-    // GET sanitizado: não retorna o valor do cookie, apenas indica se está definido
-    get: async () => ({ socialApiKeys: this.settingsStore.socialApiKeys, instagramCookieSet: !!this.settingsStore.instagramSessionCookie }),
+    get: async () => this.settingsStore,
     updateSocialApis: async (payload: Partial<{ tiktok: string; instagram: string; kwai: string; youtube: string }>) => {
       this.settingsStore.socialApiKeys = { ...this.settingsStore.socialApiKeys, ...payload };
       return this.settingsStore.socialApiKeys;
     },
-    setInstagramCookie: async (cookie: string | null) => {
-      this.settingsStore.instagramSessionCookie = cookie && cookie.trim() ? cookie.trim() : null;
-      return !!this.settingsStore.instagramSessionCookie;
-    },
-    // Método privado para uso no servidor (não expor em rotas públicas): recupera valor do cookie
-    getInstagramCookie: async () => this.settingsStore.instagramSessionCookie || null,
   };
 }
 
