@@ -41,8 +41,14 @@ function extractCaptionFromItem(item: ApifyInstagramItem): string {
 async function startActorRunAndGetItems(token: string, actor: string, wait: number, input: Record<string, any>): Promise<ApifyInstagramItem[] | null> {
   const startUrl = `https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/runs?token=${encodeURIComponent(token)}&waitForFinish=${wait}`;
   const runRes = await fetch(startUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
-  if (!runRes.ok) return null;
+  if (!runRes.ok) {
+    const txt = await runRes.text().catch(() => '');
+    console.error('[apify] run start failed', { actor, status: runRes.status, body: txt?.slice?.(0, 300) });
+    return null;
+  }
   const run = await runRes.json().catch(() => null) as any;
+  const runId = run?.data?.id || run?.data?.id?.toString?.();
+  const runStatus = run?.data?.status || run?.status;
   const datasetId = run?.data?.defaultDatasetId || run?.data?.datasetId || run?.data?.defaultDatasetId || run?.data?.datasetId;
   if (!datasetId) return null;
   const itemsUrl = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=1`;
@@ -55,7 +61,10 @@ async function startActorRunAndGetItems(token: string, actor: string, wait: numb
     if (!itemsRes.ok) return null;
     items = await itemsRes.json().catch(() => []) as ApifyInstagramItem[];
   }
-  if (!Array.isArray(items) || items.length === 0) return null;
+  if (!Array.isArray(items) || items.length === 0) {
+    console.error('[apify] dataset empty', { actor, runId, runStatus, datasetId });
+    return null;
+  }
   return items;
 }
 
