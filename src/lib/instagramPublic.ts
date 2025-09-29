@@ -350,7 +350,10 @@ async function attemptPublicJson(shortcode: string, ctx: DebugCtx, cookies?: str
 }
 
 export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx): Promise<string> {
-  const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const desktopUA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1';
+  const isMbasic = /(^|\.)mbasic\.instagram\.com$/i.test(new URL(targetUrl).hostname);
+  const UA = isMbasic ? mobileUA : desktopUA;
   const headers: Record<string, string> = {
     'User-Agent': UA,
     'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -436,6 +439,10 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     `https://www.instagram.com/p/${shortcode}/`,
     `https://www.instagram.com/reels/${shortcode}/`,
     `https://www.instagram.com/reel/${shortcode}/?locale=en_US`,
+    `https://www.instagram.com/reel/${shortcode}/?hl=en`,
+    // versões mobile básicas
+    `https://mbasic.instagram.com/reel/${shortcode}/`,
+    `https://mbasic.instagram.com/p/${shortcode}/`,
   ];
   let html: string | null = null;
   let htmlWithViews: string | null = null;
