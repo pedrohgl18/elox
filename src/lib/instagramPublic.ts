@@ -257,15 +257,24 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Prom
   for (const candidate of candidates) {
     try {
       const h = await fetchPublicHtml(candidate, sessionCookies, ctx);
-      // Se tiver JSON-LD, provavelmente conseguimos extrair
+      // Heurística melhorada: considerar OK se acharmos qualquer sinal de conteúdo útil
       const hasLd = /application\/ld\+json/i.test(h);
-      const isBlocked = /login|Entrar no Instagram|faça login/i.test(h) && !hasLd;
-      if (!isBlocked || hasLd) {
+      const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(h);
+      const capTry = extractCaptionFromHtml(h);
+      const vvTry = extractViewsFromHtml(h);
+      const containsLogin = /login|Entrar no Instagram|faça login/i.test(h);
+      const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
+      if (hasContent) {
         html = h;
-        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `hasLd:${hasLd}` });
+        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}` });
         break;
       }
-      if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_blocked', ok: false, url: candidate, notes: `hasLd:${hasLd}` });
+      const isBlocked = containsLogin && !hasContent;
+      if (isBlocked) {
+        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_blocked', ok: false, url: candidate, notes: `og:${ogDesc} ld:${hasLd}` });
+      } else {
+        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_no_content', ok: false, url: candidate, notes: `og:${ogDesc} ld:${hasLd}` });
+      }
     } catch {
       // tenta o próximo
       if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_error', ok: false, url: candidate });
@@ -275,9 +284,14 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Prom
     // Última tentativa: usar canônica mesmo bloqueada e tentar og:description
     html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`, sessionCookies, ctx);
     const hasLd = /application\/ld\+json/i.test(html);
-    const isBlocked = /login|Entrar no Instagram|faça login/i.test(html) && !hasLd;
-    if (isBlocked && !hasLd) {
-      if (ctx.enabled) ctx.logs.push({ step: 'final_blocked', ok: false, url: `https://www.instagram.com/reel/${shortcode}/` });
+    const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(html);
+    const capTry = extractCaptionFromHtml(html);
+    const vvTry = extractViewsFromHtml(html);
+    const containsLogin = /login|Entrar no Instagram|faça login/i.test(html);
+    const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
+    const isBlocked = containsLogin && !hasContent;
+    if (isBlocked) {
+      if (ctx.enabled) ctx.logs.push({ step: 'final_blocked', ok: false, url: `https://www.instagram.com/reel/${shortcode}/`, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}` });
       throw new Error('Instagram bloqueou a visualização pública para este conteúdo.');
     }
   }
