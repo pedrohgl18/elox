@@ -98,6 +98,17 @@ export function extractViewsFromHtml(html: string): number | null {
     } catch {}
   }
 
+  // 3.5) Meta: og:video:views
+  const ogViews = norm.match(/<meta\s+property=["']og:video:views["']\s+content=["'](\d+)["']\s*\/?\s*>/i);
+  if (ogViews && ogViews[1]) {
+    const n = Number(ogViews[1]);
+    if (isFinite(n) && n > 0) return n;
+  }
+
+  // 3.6) Scripts JSON espalhados na página
+  const scriptViews = extractViewsFromScriptsJson(norm);
+  if (typeof scriptViews === 'number' && scriptViews > 0) return scriptViews;
+
   // 4) aria-label textual
   const aria = norm.match(/aria-label="([^"]*?(?:visualizaç(?:ão|ões)|views|reproduções|plays)[^"]*?)"/i);
   if (aria && aria[1]) {
@@ -154,6 +165,60 @@ function extractViewsFromText(text: string): number | null {
     }
   }
   return best;
+}
+
+// Busca recursiva por números em possíveis chaves de views
+function deepFindNumberByKeys(obj: any, keys: string[]): number | null {
+  if (obj == null) return null;
+  if (typeof obj === 'number') return obj;
+  if (Array.isArray(obj)) {
+    for (const it of obj) {
+      const n = deepFindNumberByKeys(it, keys);
+      if (typeof n === 'number' && n > 0) return n;
+    }
+    return null;
+  }
+  if (typeof obj === 'object') {
+    for (const k of Object.keys(obj)) {
+      const val = (obj as any)[k];
+      if (keys.includes(k) && typeof val === 'number' && val > 0) return val;
+      const n = deepFindNumberByKeys(val, keys);
+      if (typeof n === 'number' && n > 0) return n;
+    }
+  }
+  return null;
+}
+
+// Extrai views percorrendo JSONs em <script>...</script>
+function extractViewsFromScriptsJson(html: string): number | null {
+  const scriptTags = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
+  const candidateKeys = ['video_view_count','play_count','view_count','viewCount','playCount','videoViewCount','playback_count','playbackCount'];
+  for (const tag of scriptTags) {
+    // tenta conteúdo como JSON puro
+    const mJson = tag.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+    if (!mJson) continue;
+    const body = mJson[1].trim();
+    // Caso 1: JSON puro começando com { ou [
+    if (body.startsWith('{') || body.startsWith('[')) {
+      try {
+        const data = JSON.parse(body);
+        const n = deepFindNumberByKeys(data, candidateKeys);
+        if (typeof n === 'number' && n > 0) return n;
+      } catch {}
+    }
+    // Caso 2: atribuição JS "= {...};" — tenta isolar primeiro objeto grande
+    const firstBrace = body.indexOf('{');
+    const lastBrace = body.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      const jsonLike = body.slice(firstBrace, lastBrace + 1);
+      try {
+        const data = JSON.parse(jsonLike);
+        const n = deepFindNumberByKeys(data, candidateKeys);
+        if (typeof n === 'number' && n > 0) return n;
+      } catch {}
+    }
+  }
+  return null;
 }
 // -- Utilitários para GraphQL web do Instagram --
 function extractLSDToken(html: string): string | null {
@@ -349,14 +414,14 @@ async function attemptPublicJson(shortcode: string, ctx: DebugCtx, cookies?: str
   return null;
 }
 
-export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx): Promise<string> {
+export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx, acceptLangOverride?: string): Promise<string> {
   const desktopUA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1';
   const isMbasic = /(^|\.)mbasic\.instagram\.com$/i.test(new URL(targetUrl).hostname);
   const UA = isMbasic ? mobileUA : desktopUA;
   const headers: Record<string, string> = {
     'User-Agent': UA,
-    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Language': acceptLangOverride || 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     Referer: 'https://www.instagram.com/',
     'Upgrade-Insecure-Requests': '1',
@@ -422,6 +487,12 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     sessionCookies = mergeCookies(homeRes.headers.get('set-cookie'));
     if (ctx.enabled) ctx.logs.push({ step: 'home_cookies', ok: !!sessionCookies, status: homeRes.status, url: 'https://www.instagram.com/' });
   } catch {}
+  // merge com cookie opcional fornecido via env (uso opcional; mantém modo sem login por padrão)
+  const injectedCookie = process.env.IG_SCRAPER_COOKIE || process.env.SCRAPER_COOKIE || null;
+  if (injectedCookie) {
+    sessionCookies = mergeCookies(sessionCookies, injectedCookie);
+    if (ctx.enabled) ctx.logs.push({ step: 'cookie_injected', ok: true, notes: 'env:IG_SCRAPER_COOKIE' });
+  }
   const jsonTry = await attemptPublicJson(shortcode, ctx, sessionCookies).catch(() => null);
   if (jsonTry?.caption || typeof jsonTry?.views === 'number') {
     const { hashtags, mentions } = extractHashtagsAndMentions(jsonTry.caption || '');
@@ -450,15 +521,24 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
   let viewsFound: number | null = null;
   for (const candidate of candidates) {
     try {
-      const h = await fetchPublicHtml(candidate, sessionCookies, ctx);
+      let h = await fetchPublicHtml(candidate, sessionCookies, ctx);
       // Heurística melhorada: considerar OK se acharmos qualquer sinal de conteúdo útil
       const hasLd = /application\/ld\+json/i.test(h);
       const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(h);
       const capTry = extractCaptionFromHtml(h);
       let vvTry = extractViewsFromHtml(h);
       if (!vvTry && opts?.strong) {
-        // Já incorporado dentro de extractViewsFromHtml o fallback textual; manter tentativa única
-        vvTry = extractViewsFromHtml(h);
+        // tentativa extra: refetch com Accept-Language em inglês
+        const hEn = await fetchPublicHtml(candidate, sessionCookies, ctx, 'en-US,en;q=0.9');
+        const vvEn = extractViewsFromHtml(hEn);
+        if (typeof vvEn === 'number') {
+          h = hEn;
+          vvTry = vvEn;
+          if (ctx.enabled) ctx.logs.push({ step: 'lang_refetch', ok: true, url: candidate, notes: 'Accept-Language: en-US' });
+        } else {
+          // mantém h original
+          vvTry = extractViewsFromHtml(h);
+        }
       }
       const containsLogin = /login|Entrar no Instagram|faça login/i.test(h);
       const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
