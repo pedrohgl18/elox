@@ -6,19 +6,23 @@ import { db } from '@/lib/database';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Video } from '@/lib/types';
+import { Competition, Video } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
 import { revalidatePath } from 'next/cache';
 import { Input } from '@/components/ui/Input';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import ClientActions from './ClientActions';
+import VideosTableClient, { VideoRow } from './VideosTableClient';
 
-export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string } }) {
+export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string; compId?: string } }) {
   const session: any = await getServerSession(authOptions as any);
   if (!session?.user) redirect(config.urls.login);
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
 
   const videos: Video[] = await db.video.listForUser({ role: 'admin' } as any);
+  const competitions: Competition[] = await db.competition.list();
+  const activeComp = competitions.find(c => c.status === 'ACTIVE' || c.isActive);
+  const selectedCompId = searchParams?.compId || activeComp?.id || '';
   // Tenta mapear info básica do clipador
   const clipadorCache = new Map<string, { username: string; email: string }>();
   async function getClipadorBasic(id: string) {
@@ -45,7 +49,8 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
     const okStatus = statusFilter ? v.status === statusFilter : true;
     const okSocial = socialFilter ? v.socialMedia === socialFilter : true;
     const okSearch = q ? (c.username.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || v.clipadorId.toLowerCase().includes(q)) : true;
-    return okStatus && okSocial && okSearch;
+    const okComp = selectedCompId ? (v.competitionId === selectedCompId) : true;
+    return okStatus && okSocial && okSearch && okComp;
   });
 
   // ordenação por mais recente (submittedAt desc) por padrão
@@ -81,12 +86,38 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
     }
   }
 
+  // Server actions para aprovar/rejeitar (passadas ao componente client)
+  async function approveAction(id: string) { 'use server'; await db.video.approve(id); revalidatePath('/admin/videos'); }
+  async function rejectAction(id: string) { 'use server'; await db.video.reject(id); revalidatePath('/admin/videos'); }
+
+  // Prepara linhas para o componente client
+  const rows: VideoRow[] = pageItems.map(({ v, c }) => ({
+    id: v.id,
+    clipadorUsername: c.username,
+    clipadorEmail: c.email,
+    socialMedia: v.socialMedia as any,
+    url: v.url,
+    status: v.status,
+    submittedAt: v.submittedAt.toISOString(),
+    validatedAt: v.validatedAt ? v.validatedAt.toISOString() : null,
+    latest: (() => { const m = latestByUrl.get(v.url); return { views: m?.views ?? null, collected_at: m?.collected_at || null }; })(),
+  }));
+
   return (
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold">Moderação de Vídeos</h2>
             <form className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-2 w-full sm:w-auto" method="get">
+              <div className="w-full sm:w-auto">
+                <label className="block text-xs text-slate-400 mb-1">Competição</label>
+                <Select name="compId" defaultValue={selectedCompId}>
+                  <option value="">Todas</option>
+                  {competitions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              </div>
               <div className="w-full sm:w-auto">
                 <label className="block text-xs text-slate-400 mb-1">Status</label>
                 <Select name="status" defaultValue={searchParams?.status || ''}>
@@ -120,63 +151,19 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800 text-sm sm:text-[0.95rem]">
-              <thead className="bg-gradient-to-r from-slate-950 via-emerald-900/10 to-slate-950">
-                <tr>
-                  {['Clipador','Rede','URL','Views (última)','Coletado em','Enviado em','Validado em','Status','Ações'].map((h) => (
-                    <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 bg-slate-950">
-                {pageItems.map(({ v, c }) => (
-                  <tr key={v.id} className="group hover:bg-slate-900">
-                    <td className="px-3 sm:px-4 py-2 text-slate-100 align-top">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{c.username}</span>
-                        <span className="text-xs text-slate-400">{c.email}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.socialMedia.toUpperCase()}</td>
-                    <td className="px-3 sm:px-4 py-2 break-words max-w-[260px] sm:max-w-none"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-200 whitespace-nowrap">{(() => { const m = latestByUrl.get(v.url); return typeof m?.views === 'number' ? m.views.toLocaleString('pt-BR') : '-'; })()}</td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-400 whitespace-nowrap">{(() => { const m = latestByUrl.get(v.url); return m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'; })()}</td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
-                    <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
-                    <td className="px-3 sm:px-4 py-2"><StatusBadge label={v.status} /></td>
-                    <td className="px-3 sm:px-4 py-2 flex flex-wrap gap-2">
-                      {v.status !== 'APPROVED' && (
-                        <form action={async () => { 'use server'; await db.video.approve(v.id); revalidatePath('/admin/videos'); }}>
-                          <Button size="sm">Aprovar</Button>
-                        </form>
-                      )}
-                      {v.status !== 'REJECTED' && (
-                        <form action={async () => { 'use server'; await db.video.reject(v.id); revalidatePath('/admin/videos'); }}>
-                          <Button size="sm" variant="outline">Rejeitar</Button>
-                        </form>
-                      )}
-                      {v.socialMedia === 'instagram' && (
-                        <ClientActions url={v.url} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <VideosTableClient rows={rows} approveAction={approveAction} rejectAction={rejectAction} />
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-slate-300">
             <div>
               Exibindo {Math.min(total, end) - start} de {total} itens — Página {currentPage} de {totalPages}
             </div>
             <div className="flex gap-2">
               {currentPage > 1 && (
-                <a href={`?${new URLSearchParams({ ...(searchParams as any), page: String(currentPage - 1), pageSize: String(pageSize) }).toString()}`}>
+                <a href={`?${new URLSearchParams({ ...(searchParams as any), compId: selectedCompId, page: String(currentPage - 1), pageSize: String(pageSize) }).toString()}`}>
                   <Button size="sm" variant="outline">Anterior</Button>
                 </a>
               )}
               {currentPage < totalPages && (
-                <a href={`?${new URLSearchParams({ ...(searchParams as any), page: String(currentPage + 1), pageSize: String(pageSize) }).toString()}`}>
+                <a href={`?${new URLSearchParams({ ...(searchParams as any), compId: selectedCompId, page: String(currentPage + 1), pageSize: String(pageSize) }).toString()}`}>
                   <Button size="sm" variant="outline">Próxima</Button>
                 </a>
               )}
