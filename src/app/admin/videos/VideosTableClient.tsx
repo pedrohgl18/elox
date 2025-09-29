@@ -14,7 +14,7 @@ export type VideoRow = {
   status: string;
   submittedAt: string; // ISO
   validatedAt?: string | null; // ISO
-  latest?: { views: number | null; collected_at?: string | null };
+  latest?: { views: number | null; collected_at?: string | null; hashtags?: string[]; mentions?: string[] };
 };
 
 type Props = {
@@ -28,6 +28,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [running, setRunning] = useState<'idle' | 'collect' | 'export'>('idle');
   const [progress, setProgress] = useState<{ total: number; done: number }>({ total: 0, done: 0 });
+  const [force, setForce] = useState(false);
 
   const allSelected = selected.size > 0 && selected.size === rows.length;
 
@@ -60,7 +61,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
           await fetch('/api/admin/instagram-collect', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: r.url }),
+            body: JSON.stringify({ url: r.url, force }),
           });
         } catch {}
         done++;
@@ -85,6 +86,38 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     window.location.reload();
   }
 
+  async function collectPage() {
+    // Coleta todos da página (apenas Instagram)
+    const targets = rows.filter((r) => r.socialMedia === 'instagram');
+    if (!targets.length) return;
+    setRunning('collect');
+    setProgress({ total: targets.length, done: 0 });
+    let done = 0;
+    const concurrency = 4;
+    const work = async (r: VideoRow) => {
+      try {
+        await fetch('/api/admin/instagram-collect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: r.url, force }),
+        });
+      } catch {}
+      done++;
+      setProgress({ total: targets.length, done });
+    };
+    // pool simples
+    const queue = [...targets];
+    async function runner() {
+      while (queue.length) {
+        const r = queue.shift()!;
+        await work(r);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, runner));
+    setRunning('idle');
+    window.location.reload();
+  }
+
   function exportCSV() {
     const rowsToExport = selectedRows.length ? selectedRows : rows; // se nada selecionado, exporta todos visíveis
     if (!rowsToExport.length) return;
@@ -97,6 +130,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
       'url',
       'status',
       'views_latest',
+      'hashtags_latest',
+      'mentions_latest',
       'collected_at_latest',
       'submitted_at',
       'validated_at',
@@ -108,7 +143,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     };
     const lines = [header.join(',')];
     for (const r of rowsToExport) {
-      const m = r.latest || { views: null, collected_at: '' };
+      const m = r.latest || { views: null, collected_at: '', hashtags: [], mentions: [] };
       lines.push([
         r.id,
         r.clipadorUsername,
@@ -117,6 +152,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
         r.url,
         r.status,
         m.views ?? '',
+        (m.hashtags || []).join(' '),
+        (m.mentions || []).join(' '),
         m.collected_at ? new Date(m.collected_at).toISOString() : '',
         new Date(r.submittedAt).toISOString(),
         r.validatedAt ? new Date(r.validatedAt).toISOString() : '',
@@ -144,12 +181,19 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
             <span className="ml-3 text-emerald-400">{running === 'collect' ? `Coletando ${progress.done}/${progress.total}...` : 'Gerando CSV...'}</span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-xs text-slate-300 mr-2">
+            <input type="checkbox" className="h-4 w-4 rounded border-slate-600 bg-slate-800" checked={force} onChange={(e) => setForce(e.target.checked)} />
+            Forçar recoleta
+          </label>
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} disabled={running !== 'idle'}>
             Limpar seleção
           </Button>
           <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram').length === 0}>
             Coletar métricas (selecionados)
+          </Button>
+          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram').length === 0}>
+            Coletar métricas (página)
           </Button>
           <Button size="sm" variant="outline" onClick={exportCSV} disabled={running !== 'idle' || rows.length === 0}>
             Exportar CSV {selected.size ? '(selecionados)' : '(página)'}

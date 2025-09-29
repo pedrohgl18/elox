@@ -10,10 +10,29 @@ export async function POST(req: Request) {
   if ((session.user as any).role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const url = (body?.url || '').trim();
+  const force = !!body?.force;
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 });
   const supa = getSupabaseServiceClient();
   if (!supa) return NextResponse.json({ error: 'Supabase service client not configured' }, { status: 500 });
   try {
+    // Cooldown simples para evitar recoleta muito frequente, a menos que force=true
+    const cooldownMin = Math.max(0, Math.min(240, Number(process.env.APIFY_COOLDOWN_MIN) || 30));
+    if (!force && cooldownMin > 0) {
+      const latest = await supa
+        .from('video_metrics')
+        .select('collected_at')
+        .eq('url', url)
+        .order('collected_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const latestAt = (latest.data as any)?.collected_at ? new Date((latest.data as any).collected_at) : null;
+      if (latestAt) {
+        const ageMin = (Date.now() - latestAt.getTime()) / 60000;
+        if (ageMin < cooldownMin) {
+          return NextResponse.json({ skipped: true, reason: 'recent', latestAt: latestAt.toISOString(), cooldownMin });
+        }
+      }
+    }
     // Coleta exclusivamente via Apify
     const ap = await runApifyInstagram(url).catch(() => null);
     if (!ap) {

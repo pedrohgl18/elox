@@ -100,7 +100,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
     status: v.status,
     submittedAt: v.submittedAt.toISOString(),
     validatedAt: v.validatedAt ? v.validatedAt.toISOString() : null,
-    latest: (() => { const m = latestByUrl.get(v.url); return { views: m?.views ?? null, collected_at: m?.collected_at || null }; })(),
+    latest: (() => { const m = latestByUrl.get(v.url); return { views: m?.views ?? null, collected_at: m?.collected_at || null, hashtags: m?.hashtags || [], mentions: m?.mentions || [] }; })(),
   }));
 
   return (
