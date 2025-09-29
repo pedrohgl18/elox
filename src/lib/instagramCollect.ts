@@ -28,6 +28,26 @@ function extractViews(html: string): number | null {
   if (ogViews?.[1]) { const n = Number(ogViews[1]); if (isFinite(n) && n > 0) return n; }
   const jsonCount = html.match(/"(?:video_view_count|play_count|view_count|viewCount)"\s*:\s*("?)(\d+)\1/);
   if (jsonCount?.[2]) { const n = Number(jsonCount[2]); if (isFinite(n) && n > 1) return n; }
+  // JSON-LD interactionStatistic
+  const ldAll = Array.from(html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi));
+  for (const m of ldAll) {
+    try {
+      const j = JSON.parse(m[1]);
+      const arr = Array.isArray(j) ? j : [j];
+      for (const item of arr) {
+        const stats = item?.interactionStatistic || item?.interactionStatistics;
+        const statsArr = Array.isArray(stats) ? stats : (stats ? [stats] : []);
+        for (const s of statsArr) {
+          const t = (s?.interactionType || s?.['@type'] || '').toString().toLowerCase();
+          if (t.includes('watch') || t.includes('interaction')) {
+            const val = s?.userInteractionCount ?? s?.interactionCount;
+            const n = typeof val === 'string' ? Number(val) : (typeof val === 'number' ? val : NaN);
+            if (isFinite(n) && n > 1) return Math.round(n);
+          }
+        }
+      }
+    } catch {}
+  }
   const text = html.replace(/&nbsp;|&#160;|&#8239;/g, ' ');
   const m = /(\d[\d\.,\s]*)\s*(k|m|mi|milh(?:ão|ões)|bilh(?:ão|ões))?\s*(views|visualizaç(?:ão|ões))/i.exec(text);
   if (m) {
