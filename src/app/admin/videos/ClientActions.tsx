@@ -58,38 +58,38 @@ export default function ClientActions({ url }: { url: string }) {
       </Button>
   <Button size="sm" variant="outline" onClick={openDetails}>Detalhes</Button>
       <Modal open={open} onClose={() => setOpen(false)}>
-        <div className="space-y-3">
+        <div className="space-y-4 text-slate-200">
           <div className="text-lg font-semibold">Histórico de coletas</div>
-          <div className="text-xs text-slate-600 break-all">{url}</div>
+          <div className="text-xs text-slate-400 break-all">{url}</div>
           {histLoading ? (
-            <div className="text-sm">Carregando…</div>
+            <div className="text-sm text-slate-300">Carregando…</div>
           ) : history.length === 0 ? (
-            <div className="text-sm">Sem histórico.</div>
+            <div className="text-sm text-slate-300">Sem histórico.</div>
           ) : (
-            <div className="max-h-80 overflow-auto">
+            <div className="max-h-80 overflow-auto rounded border border-slate-800 bg-slate-950/60">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="bg-slate-900/60 text-slate-300">
                   <tr>
-                    <th className="text-left p-2">Coletado em</th>
-                    <th className="text-left p-2">Views</th>
-                    <th className="text-left p-2">Hashtags</th>
-                    <th className="text-left p-2">Menções</th>
+                    <th className="text-left p-2 font-medium">Coletado em</th>
+                    <th className="text-left p-2 font-medium">Views</th>
+                    <th className="text-left p-2 font-medium">Hashtags</th>
+                    <th className="text-left p-2 font-medium">Menções</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-800">
                   {history.map((h) => (
-                    <tr key={h.id} className="border-t">
-                      <td className="p-2">{new Date(h.collected_at).toLocaleString('pt-BR')}</td>
-                      <td className="p-2">{typeof h.views === 'number' ? h.views.toLocaleString('pt-BR') : '-'}</td>
+                    <tr key={h.id} className="hover:bg-slate-900/40">
+                      <td className="p-2 text-slate-300">{new Date(h.collected_at).toLocaleString('pt-BR')}</td>
+                      <td className="p-2 text-slate-200">{typeof h.views === 'number' ? h.views.toLocaleString('pt-BR') : '-'}</td>
                       <td className="p-2">
                         {(h.hashtags || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(h.hashtags || []).map((t, i) => <span key={i} className="text-xs bg-slate-200 text-slate-800 px-1 rounded">{t}</span>)}</div>
-                        ) : '-'}
+                          <div className="flex flex-wrap gap-1">{(h.hashtags || []).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
+                        ) : <span className="text-slate-500">-</span>}
                       </td>
                       <td className="p-2">
                         {(h.mentions || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(h.mentions || []).map((t, i) => <span key={i} className="text-xs bg-slate-200 text-slate-800 px-1 rounded">{t}</span>)}</div>
-                        ) : '-'}
+                          <div className="flex flex-wrap gap-1">{(h.mentions || []).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
+                        ) : <span className="text-slate-500">-</span>}
                       </td>
                     </tr>
                   ))}
@@ -98,7 +98,7 @@ export default function ClientActions({ url }: { url: string }) {
             </div>
           )}
           <div className="flex justify-end">
-            <button className="px-3 py-2 rounded bg-slate-900 text-white" onClick={() => setOpen(false)}>Fechar</button>
+            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
           </div>
         </div>
       </Modal>
