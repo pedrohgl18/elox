@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import { collectInstagramWithSession } from '@/lib/instagramCollect';
+import { runApifyInstagram } from '@/lib/apify';
 
 export async function POST(req: Request) {
   const session: any = await getServerSession(authOptions as any);
@@ -18,7 +19,14 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data?.cookie) return NextResponse.json({ error: 'Instagram session not set' }, { status: 400 });
   try {
-    const res = await collectInstagramWithSession(url, data.cookie);
+    let res = await collectInstagramWithSession(url, data.cookie);
+    // Se views e caption não vieram, tenta fallback via Apify (se APIFY_TOKEN estiver definido)
+    if ((!res.views || res.views <= 1) && (!res.hashtags?.length && !res.mentions?.length)) {
+      const ap = await runApifyInstagram(url).catch(() => null);
+      if (ap) {
+        res = { ...res, views: ap.views ?? res.views ?? null, hashtags: ap.hashtags ?? res.hashtags, mentions: ap.mentions ?? res.mentions };
+      }
+    }
     // persiste histórico
     const ins = await supa
       .from('video_metrics')
