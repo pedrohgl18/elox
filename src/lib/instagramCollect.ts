@@ -62,8 +62,75 @@ export async function collectInstagramWithSession(url: string, cookie: string): 
   const res = await fetch(url, { headers, redirect: 'follow', cache: 'no-store' });
   const html = await res.text();
   if (!res.ok) throw new Error(`Instagram respondeu ${res.status}`);
-  const caption = extractCaption(html);
-  const views = extractViews(html);
+  let caption = extractCaption(html);
+  let views = extractViews(html);
+  // Fallback: tentar endpoint JSON autenticado com __a=1&__d=dis por shortcode
+  if ((!views || views <= 1) || !caption) {
+    if (shortcode) {
+      const jsonHeaders: Record<string, string> = {
+        'User-Agent': headers['User-Agent'],
+        'Accept-Language': headers['Accept-Language'],
+        Accept: 'application/json',
+        Referer: 'https://www.instagram.com/',
+        Cookie: cookie,
+        'X-Requested-With': 'XMLHttpRequest',
+      };
+      const candidates = [
+        `https://www.instagram.com/reel/${shortcode}/?__a=1&__d=dis`,
+        `https://www.instagram.com/reels/${shortcode}/?__a=1&__d=dis`,
+        `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`,
+      ];
+      for (const apiUrl of candidates) {
+        try {
+          const jr = await fetch(apiUrl, { headers: jsonHeaders, redirect: 'follow', cache: 'no-store' });
+          const txt = await jr.text();
+          // Alguns ambientes retornam "for (;;);" prefixo – remover antes do JSON.parse
+          const clean = txt.replace(/^for \(;;\);/, '');
+          const j = JSON.parse(clean);
+          // Tentativa robusta: varrer o JSON em busca de campos de contagem de views e caption
+          const { viewCount, cap } = deepExtractViewAndCaption(j);
+          if (!caption && cap) caption = cap;
+          if ((!views || views <= 1) && typeof viewCount === 'number' && viewCount > 1) views = viewCount;
+          if (caption || (typeof views === 'number' && views > 1)) break;
+        } catch {
+          // tenta próximo candidate
+        }
+      }
+    }
+  }
   const { hashtags, mentions } = extractTags(caption);
   return { url, shortcode, views, hashtags, mentions };
+}
+
+// Percorre recursivamente o objeto procurando chaves plausíveis
+function deepExtractViewAndCaption(obj: any): { viewCount: number | null; cap: string } {
+  let foundViews: number | null = null;
+  let foundCaption = '';
+  const keysViews = new Set(['video_view_count', 'play_count', 'view_count', 'viewCount']);
+  function walk(x: any) {
+    if (!x || typeof x !== 'object') return;
+    // caption pode vir como string ou objeto { text }
+    if (!foundCaption) {
+      if (typeof x.caption === 'string' && x.caption) foundCaption = x.caption;
+      else if (x.caption && typeof x.caption === 'object' && typeof x.caption.text === 'string' && x.caption.text) foundCaption = x.caption.text;
+      else if (typeof x.title === 'string' && x.title) foundCaption = x.title;
+      else if (typeof x.description === 'string' && x.description) foundCaption = x.description;
+    }
+    for (const k of Object.keys(x)) {
+      const v = (x as any)[k];
+      if (v && typeof v === 'object') walk(v);
+      if (foundViews === null && keysViews.has(k)) {
+        const n = typeof v === 'string' ? Number(v) : (typeof v === 'number' ? v : NaN);
+        if (isFinite(n) && n > 1) foundViews = Math.round(n);
+      }
+      if (!foundCaption && (k === 'caption' || k === 'title' || k === 'description') && typeof v === 'string') {
+        foundCaption = v;
+      }
+      if (!foundCaption && k === 'caption' && v && typeof v === 'object' && typeof v.text === 'string') {
+        foundCaption = v.text;
+      }
+    }
+  }
+  walk(obj);
+  return { viewCount: foundViews, cap: foundCaption };
 }
