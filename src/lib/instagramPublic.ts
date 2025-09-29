@@ -122,6 +122,7 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
         'X-IG-App-ID': IG_APP_ID,
         'X-ASBD-ID': IG_ASBD_ID,
         Referer: reelUrl,
+        Origin: 'https://www.instagram.com',
         Accept: 'application/json, text/plain, */*',
         'X-Requested-With': 'XMLHttpRequest',
         ...(cookies ? { Cookie: cookies } : {}),
@@ -140,21 +141,23 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
   }
 }
 
-export async function fetchPublicHtml(targetUrl: string): Promise<string> {
+export async function fetchPublicHtml(targetUrl: string, cookies?: string | null): Promise<string> {
   const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const headers: Record<string, string> = {
+    'User-Agent': UA,
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    Referer: 'https://www.instagram.com/',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-User': '?1',
+    'Sec-Fetch-Dest': 'document',
+    'X-Requested-With': 'XMLHttpRequest',
+  };
+  if (cookies) headers['Cookie'] = cookies;
   const res = await fetch(targetUrl, {
-    headers: {
-      'User-Agent': UA,
-      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-      'Referer': 'https://www.instagram.com/',
-      'Upgrade-Insecure-Requests': '1',
-      'Sec-Fetch-Site': 'same-origin',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-User': '?1',
-      'Sec-Fetch-Dest': 'document',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
+    headers,
     redirect: 'follow',
     cache: 'no-store',
   });
@@ -201,6 +204,21 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
     return { url, shortcode, views: typeof gql.views === 'number' ? gql.views : null, hashtags, mentions };
   }
   // 1) Fallback: Tentar múltiplas variantes (original, canônica, embed, etc.)
+  // Primeiro, tenta capturar cookies da home para reutilizar nas próximas requisições
+  let sessionCookies: string | null = null;
+  try {
+    const homeRes = await fetch('https://www.instagram.com/', {
+      headers: {
+        'User-Agent': process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        Referer: 'https://www.instagram.com/',
+      },
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+    sessionCookies = mergeCookies(homeRes.headers.get('set-cookie'));
+  } catch {}
   const candidates = [
     url,
     `https://www.instagram.com/reel/${shortcode}/`,
@@ -208,11 +226,14 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
     `https://www.instagram.com/reel/${shortcode}/?utm_source=ig_web_copy_link`,
     `https://www.instagram.com/reel/${shortcode}/embed/`,
     `https://www.instagram.com/reel/${shortcode}/embed/captioned/`,
+    `https://www.instagram.com/p/${shortcode}/`,
+    `https://www.instagram.com/reels/${shortcode}/`,
+    `https://www.instagram.com/reel/${shortcode}/?locale=en_US`,
   ];
   let html: string | null = null;
   for (const candidate of candidates) {
     try {
-      const h = await fetchPublicHtml(candidate);
+      const h = await fetchPublicHtml(candidate, sessionCookies);
       // Se tiver JSON-LD, provavelmente conseguimos extrair
       const hasLd = /application\/ld\+json/i.test(h);
       const isBlocked = /login|Entrar no Instagram|faça login/i.test(h) && !hasLd;
@@ -226,7 +247,7 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
   }
   if (!html) {
     // Última tentativa: usar canônica mesmo bloqueada e tentar og:description
-    html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`);
+    html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`, sessionCookies);
     const hasLd = /application\/ld\+json/i.test(html);
     const isBlocked = /login|Entrar no Instagram|faça login/i.test(html) && !hasLd;
     if (isBlocked && !hasLd) {
