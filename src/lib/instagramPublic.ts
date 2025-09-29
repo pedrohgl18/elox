@@ -510,7 +510,13 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     if (ctx.enabled) ctx.logs.push({ step: 'home_cookies', ok: !!sessionCookies, status: homeRes.status, url: 'https://www.instagram.com/' });
   } catch {}
   // merge com cookie opcional fornecido via env (uso opcional; mantém modo sem login por padrão)
-  const injectedCookie = process.env.IG_SCRAPER_COOKIE || process.env.SCRAPER_COOKIE || null;
+  let injectedCookie = process.env.IG_SCRAPER_COOKIE || process.env.SCRAPER_COOKIE || null;
+  // tentativa: obter cookie persistido via DB (somente server-side)
+  try {
+    const { db } = await import('@/lib/database');
+    const s = await db.settings.getInstagramCookie?.();
+    if (s) injectedCookie = injectedCookie ? `${injectedCookie}; ${s}` : s;
+  } catch {}
   if (injectedCookie) {
     sessionCookies = mergeCookies(sessionCookies, injectedCookie);
     if (ctx.enabled) ctx.logs.push({ step: 'cookie_injected', ok: true, notes: 'env:IG_SCRAPER_COOKIE' });
