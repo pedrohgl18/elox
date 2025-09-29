@@ -13,7 +13,10 @@ export async function POST(req: Request) {
     const code = parseShortcode(url);
     if (!code) return NextResponse.json({ error: 'URL de Reel inválida. Use /reel/{código}' }, { status: 400 });
     if (debugFlag) {
-      const { data, debug } = await fetchReelPublicInsightsDebug(url);
+      const { data, debug, error } = await fetchReelPublicInsightsDebug(url);
+      if (error && !data) {
+        return NextResponse.json({ error, _debug: debug }, { status: 500 });
+      }
       return NextResponse.json({ ...data, _debug: debug });
     } else {
       const data = await fetchReelPublicInsights(url);

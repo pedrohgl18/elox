@@ -293,8 +293,13 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
   return internalFetchReelPublicInsights(url, ctx);
 }
 
-export async function fetchReelPublicInsightsDebug(url: string): Promise<{ data: ReelInsights; debug: ReelDebugEntry[] }> {
+export async function fetchReelPublicInsightsDebug(url: string): Promise<{ data?: ReelInsights; debug: ReelDebugEntry[]; error?: string }> {
   const ctx: DebugCtx = { enabled: true, logs: [] };
-  const data = await internalFetchReelPublicInsights(url, ctx);
-  return { data, debug: ctx.logs };
+  try {
+    const data = await internalFetchReelPublicInsights(url, ctx);
+    return { data, debug: ctx.logs };
+  } catch (e: any) {
+    const message = e?.message || 'Falha ao obter métricas';
+    return { error: message, debug: ctx.logs };
+  }
 }
