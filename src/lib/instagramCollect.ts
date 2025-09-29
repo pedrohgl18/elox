@@ -74,6 +74,7 @@ export async function collectInstagramWithSession(url: string, cookie: string): 
         Referer: 'https://www.instagram.com/',
         Cookie: cookie,
         'X-Requested-With': 'XMLHttpRequest',
+        'X-IG-App-ID': '936619743392459',
       };
       const candidates = [
         `https://www.instagram.com/reel/${shortcode}/?__a=1&__d=dis`,
@@ -96,7 +97,47 @@ export async function collectInstagramWithSession(url: string, cookie: string): 
           // tenta próximo candidate
         }
       }
+
+      // Fallback mobile: i.instagram.com com UA mobile
+      if ((!views || views <= 1) || !caption) {
+        const mobileHeaders: Record<string, string> = {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8',
+          Accept: 'application/json',
+          Referer: 'https://www.instagram.com/',
+          Cookie: cookie,
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-IG-App-ID': '936619743392459',
+        };
+        const mobileUrl = `https://i.instagram.com/api/v1/media/shortcode/${shortcode}/`;
+        try {
+          const jr2 = await fetch(mobileUrl, { headers: mobileHeaders, redirect: 'follow', cache: 'no-store' });
+          const txt2 = await jr2.text();
+          const j2 = JSON.parse(txt2);
+          const { viewCount, cap } = deepExtractViewAndCaption(j2);
+          if (!caption && cap) caption = cap;
+          if ((!views || views <= 1) && typeof viewCount === 'number' && viewCount > 1) views = viewCount;
+        } catch {
+          // ignora
+        }
+      }
     }
+  }
+
+  // Último recurso: tentar variante HTML em en-US (algumas páginas exibem metatags em inglês)
+  if ((!views || views <= 1) || !caption) {
+    try {
+      const altHeaders = { ...headers, 'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8' } as Record<string, string>;
+      const rr = await fetch(url, { headers: altHeaders, redirect: 'follow', cache: 'no-store' });
+      if (rr.ok) {
+        const h2 = await rr.text();
+        if (!caption) caption = extractCaption(h2);
+        if (!views || views <= 1) {
+          const v2 = extractViews(h2);
+          if (typeof v2 === 'number' && v2 > 1) views = v2;
+        }
+      }
+    } catch {}
   }
   const { hashtags, mentions } = extractTags(caption);
   return { url, shortcode, views, hashtags, mentions };
@@ -106,7 +147,7 @@ export async function collectInstagramWithSession(url: string, cookie: string): 
 function deepExtractViewAndCaption(obj: any): { viewCount: number | null; cap: string } {
   let foundViews: number | null = null;
   let foundCaption = '';
-  const keysViews = new Set(['video_view_count', 'play_count', 'view_count', 'viewCount']);
+  const keysViews = new Set(['video_view_count', 'video_play_count', 'play_count', 'view_count', 'viewCount', 'playCount', 'clips_view_count']);
   function walk(x: any) {
     if (!x || typeof x !== 'object') return;
     // caption pode vir como string ou objeto { text }
@@ -115,6 +156,11 @@ function deepExtractViewAndCaption(obj: any): { viewCount: number | null; cap: s
       else if (x.caption && typeof x.caption === 'object' && typeof x.caption.text === 'string' && x.caption.text) foundCaption = x.caption.text;
       else if (typeof x.title === 'string' && x.title) foundCaption = x.title;
       else if (typeof x.description === 'string' && x.description) foundCaption = x.description;
+    }
+    // GraphQL comum: edge_media_to_caption.edges[0].node.text
+    if (!foundCaption && x.edge_media_to_caption && Array.isArray(x.edge_media_to_caption.edges) && x.edge_media_to_caption.edges.length) {
+      const node = x.edge_media_to_caption.edges[0]?.node;
+      if (node && typeof node.text === 'string' && node.text) foundCaption = node.text;
     }
     for (const k of Object.keys(x)) {
       const v = (x as any)[k];
