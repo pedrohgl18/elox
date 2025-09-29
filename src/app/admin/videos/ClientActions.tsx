@@ -54,7 +54,7 @@ export default function ClientActions({ url }: { url: string }) {
   return (
     <div className="flex gap-2">
       <Button size="sm" variant="outline" onClick={collect} disabled={loading}>
-        {loading ? 'Coletando…' : 'Coletar métricas (sessão)'}
+        {loading ? 'Coletando…' : 'Coletar métricas (Apify)'}
       </Button>
   <Button size="sm" variant="outline" onClick={openDetails}>Detalhes</Button>
       <Modal open={open} onClose={() => setOpen(false)}>

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
-import { collectInstagramWithSession } from '@/lib/instagramCollect';
 import { runApifyInstagram } from '@/lib/apify';
 
 export async function POST(req: Request) {
@@ -14,30 +13,33 @@ export async function POST(req: Request) {
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 });
   const supa = getSupabaseServiceClient();
   if (!supa) return NextResponse.json({ error: 'Supabase service client not configured' }, { status: 500 });
-  // recupera cookie
-  const { data, error } = await supa.from('instagram_admin_session').select('cookie').limit(1).single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data?.cookie) return NextResponse.json({ error: 'Instagram session not set' }, { status: 400 });
   try {
-    let res = await collectInstagramWithSession(url, data.cookie);
-    // Se views e caption não vieram, tenta fallback via Apify (se APIFY_TOKEN estiver definido)
-    if ((!res.views || res.views <= 1) && (!res.hashtags?.length && !res.mentions?.length)) {
-      const ap = await runApifyInstagram(url).catch(() => null);
-      if (ap) {
-        res = { ...res, views: ap.views ?? res.views ?? null, hashtags: ap.hashtags ?? res.hashtags, mentions: ap.mentions ?? res.mentions };
-      }
-    }
-    // persiste histórico
+    // Coleta exclusivamente via Apify
+    const ap = await runApifyInstagram(url).catch(() => null);
+    if (!ap) return NextResponse.json({ error: 'Apify did not return data. Check APIFY_TOKEN and actor configuration.' }, { status: 502 });
+    const shortcode = parseShortcode(url);
     const ins = await supa
       .from('video_metrics')
-      .insert({ platform: 'instagram', url: res.url, shortcode: res.shortcode, views: res.views, hashtags: res.hashtags, mentions: res.mentions });
+      .insert({ platform: 'instagram', url, shortcode, views: ap.views, hashtags: ap.hashtags, mentions: ap.mentions });
     if (ins.error) {
       console.error('[instagram-collect] insert error:', ins.error);
       return NextResponse.json({ error: ins.error.message }, { status: 500 });
     }
-    return NextResponse.json(res);
+    return NextResponse.json({ url, shortcode, views: ap.views, hashtags: ap.hashtags, mentions: ap.mentions });
   } catch (e: any) {
     console.error('[instagram-collect] collect error:', e);
     return NextResponse.json({ error: e.message || 'Failed to collect' }, { status: 500 });
+  }
+}
+
+function parseShortcode(input: string): string | null {
+  try {
+    const u = new URL(input);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const idx = parts[0] === 'reel' || parts[0] === 'reels' || parts[0] === 'p' ? 1 : -1;
+    if (idx === -1) return null;
+    return parts[idx] || null;
+  } catch {
+    return null;
   }
 }
