@@ -15,6 +15,9 @@ export function AdminApiKeysForm() {
   const [apifyConfigured, setApifyConfigured] = React.useState(false);
   const [apifyActor, setApifyActor] = React.useState<string>('');
   const [apifyWait, setApifyWait] = React.useState<number>(0);
+  const [testUrl, setTestUrl] = React.useState('');
+  const [testLoading, setTestLoading] = React.useState(false);
+  const [testOutput, setTestOutput] = React.useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -106,6 +109,33 @@ export function AdminApiKeysForm() {
               setSuccess('Status atualizado.');
             } catch (e: any) { setError(e.message || 'Erro'); } finally { setLoading(false); }
           }}>Testar integração</Button>
+        </div>
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div className="text-sm font-medium">Teste de coleta (Apify)</div>
+          <div className="text-xs text-slate-400">Informe a URL de um Reel/P e execute um teste rápido. Isso cria um registro em video_metrics.</div>
+          <div className="flex gap-2">
+            <Input value={testUrl} onChange={(e) => setTestUrl(e.currentTarget.value)} placeholder="https://www.instagram.com/reel/XXXXXXXXX/" />
+            <Button type="button" disabled={testLoading || !testUrl.trim()} onClick={async () => {
+              setTestLoading(true); setError(null); setSuccess(null); setTestOutput(null);
+              try {
+                const res = await fetch('/api/admin/instagram-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: testUrl.trim() }) });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
+                setTestOutput(j);
+                setSuccess('Coleta concluída.');
+              } catch (e: any) {
+                setTestOutput(e?.message ? { error: e.message } : null);
+                setError(e.message || 'Erro');
+              } finally {
+                setTestLoading(false);
+              }
+            }}>{testLoading ? 'Coletando…' : 'Executar teste'}</Button>
+          </div>
+          {testOutput && (
+            <div className="text-xs bg-slate-900/60 border border-slate-800 rounded p-3 overflow-x-auto">
+              <pre className="whitespace-pre-wrap break-words">{JSON.stringify(testOutput, null, 2)}</pre>
+            </div>
+          )}
         </div>
       </div>
     </form>
