@@ -265,6 +265,90 @@ async function attemptGraphQL(shortcode: string, reelUrl: string, ctx?: DebugCtx
   }
 }
 
+// Tenta endpoints JSON públicos (pouco estáveis): ?__a=1&__d=dis e similares
+async function attemptPublicJson(shortcode: string, ctx: DebugCtx, cookies?: string | null): Promise<{ views?: number | null; caption?: string } | null> {
+  const urls = [
+    `https://www.instagram.com/reel/${shortcode}/?__a=1&__d=dis`,
+    `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`,
+  ];
+  const headers: Record<string, string> = {
+    'User-Agent': process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    Accept: 'application/json, text/plain, */*',
+    Referer: `https://www.instagram.com/reel/${shortcode}/`,
+    Origin: 'https://www.instagram.com',
+    'X-Requested-With': 'XMLHttpRequest',
+  };
+  if (cookies) headers['Cookie'] = cookies;
+
+  const deepFindNumberByKeys = (obj: any, keys: string[]): number | null => {
+    if (obj == null) return null;
+    if (typeof obj === 'number') return obj;
+    if (typeof obj === 'object') {
+      for (const k of Object.keys(obj)) {
+        const val = obj[k];
+        if (keys.includes(k) && typeof val === 'number' && val > 0) return val;
+        const nested = deepFindNumberByKeys(val, keys);
+        if (typeof nested === 'number' && nested > 0) return nested;
+      }
+    }
+    if (Array.isArray(obj)) {
+      for (const it of obj) {
+        const nested = deepFindNumberByKeys(it, keys);
+        if (typeof nested === 'number' && nested > 0) return nested;
+      }
+    }
+    return null;
+  };
+
+  const deepFindCaption = (obj: any): string | null => {
+    if (!obj || typeof obj !== 'object') return null;
+    // caminhos comuns
+    const caption = obj?.edge_media_to_caption?.edges?.[0]?.node?.text
+      || obj?.caption?.text
+      || obj?.caption
+      || obj?.clips_metadata?.music_info?.music_title; // fallback exótico
+    if (typeof caption === 'string' && caption.trim()) return caption;
+    for (const k of Object.keys(obj)) {
+      const val = obj[k];
+      if (val && typeof val === 'object') {
+        const c = deepFindCaption(val);
+        if (c) return c;
+      }
+    }
+    return null;
+  };
+
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { headers, redirect: 'follow', cache: 'no-store' });
+      const ct = r.headers.get('content-type') || '';
+      const ok = r.ok && ct.includes('application/json');
+      const text = await r.text();
+      if (!ok) {
+        if (ctx.enabled) ctx.logs.push({ step: 'json_fetch', ok: false, status: r.status, url: u, notes: `ct:${ct}` });
+        continue;
+      }
+      let data: any = null;
+      try { data = JSON.parse(text); } catch {}
+      if (!data) {
+        if (ctx.enabled) ctx.logs.push({ step: 'json_parse', ok: false, url: u });
+        continue;
+      }
+      const views = deepFindNumberByKeys(data, ['video_view_count', 'play_count', 'view_count', 'viewCount', 'playCount']);
+      const caption = deepFindCaption(data) || '';
+      if (typeof views === 'number' || caption) {
+        if (ctx.enabled) ctx.logs.push({ step: 'json_ok', ok: true, url: u, notes: `views:${typeof views === 'number'}` });
+        return { views: typeof views === 'number' ? views : null, caption };
+      }
+      if (ctx.enabled) ctx.logs.push({ step: 'json_no_data', ok: false, url: u });
+    } catch {
+      if (ctx.enabled) ctx.logs.push({ step: 'json_error', ok: false, url: u });
+    }
+  }
+  return null;
+}
+
 export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx): Promise<string> {
   const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const headers: Record<string, string> = {
@@ -319,8 +403,7 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_graphql' });
     return { url, shortcode, views: typeof gql.views === 'number' ? gql.views : null, hashtags, mentions };
   }
-  // 1) Fallback: Tentar múltiplas variantes (original, canônica, embed, etc.)
-  // Primeiro, tenta capturar cookies da home para reutilizar nas próximas requisições
+  // 0.5) Tenta endpoints JSON públicos (__a=1&__d=dis)
   let sessionCookies: string | null = null;
   try {
     const homeRes = await fetch('https://www.instagram.com/', {
@@ -336,6 +419,13 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     sessionCookies = mergeCookies(homeRes.headers.get('set-cookie'));
     if (ctx.enabled) ctx.logs.push({ step: 'home_cookies', ok: !!sessionCookies, status: homeRes.status, url: 'https://www.instagram.com/' });
   } catch {}
+  const jsonTry = await attemptPublicJson(shortcode, ctx, sessionCookies).catch(() => null);
+  if (jsonTry?.caption || typeof jsonTry?.views === 'number') {
+    const { hashtags, mentions } = extractHashtagsAndMentions(jsonTry.caption || '');
+    if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_public_json' });
+    return { url, shortcode, views: typeof jsonTry.views === 'number' ? jsonTry.views : null, hashtags, mentions };
+  }
+  // 1) Fallback HTML: Tentar múltiplas variantes (original, canônica, embed, etc.)
   const candidates = [
     url,
     `https://www.instagram.com/reel/${shortcode}/`,
