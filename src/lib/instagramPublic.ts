@@ -47,8 +47,116 @@ export function extractHashtagsAndMentions(text: string): { hashtags: string[]; 
   return { hashtags, mentions };
 }
 
+export function extractViewsFromHtml(html: string): number | null {
+  // Normaliza entidades e espaços especiais (NBSP, NNBSP) para facilitar regex textual
+  let norm = html
+    // entidades comuns de espaço
+    .replace(/&nbsp;|&#160;|&#8239;/g, ' ')
+    // entidades numéricas decimais
+    .replace(/&#(\d+);/g, (_, n) => {
+      try { return String.fromCharCode(parseInt(n, 10)); } catch { return ' '; }
+    })
+    // entidades numéricas hexadecimais
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => {
+      try { return String.fromCharCode(parseInt(h, 16)); } catch { return ' '; }
+    });
+
+  // 1) Números diretos em JSON/blobs (snake_case), aceitando números entre aspas
+  const numFromKey = (key: string): number | null => {
+    const reNum = new RegExp(`"${key}"\\s*:\\s*(?:"(\\d+)"|(\\d+))`);
+    const m = norm.match(reNum);
+    const v = m?.[1] || m?.[2];
+    return v ? Number(v) : null;
+  };
+  const snakeKeys = ['play_count', 'video_view_count', 'view_count', 'views_count'];
+  for (const k of snakeKeys) {
+    const n = numFromKey(k);
+    if (typeof n === 'number' && n > 0) return n;
+  }
+
+  // 2) camelCase
+  const camelKeys = ['viewCount', 'playCount'];
+  for (const k of camelKeys) {
+    const n = numFromKey(k);
+    if (typeof n === 'number' && n > 0) return n;
+  }
+
+  // 3) JSON-LD: interactionStatistic -> userInteractionCount
+  const ldMatches = norm.match(/<script type="application\/ld\+json">([\s\s]*?)<\/script>/g) || [];
+  for (const tag of ldMatches) {
+    const m = tag.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (!m) continue;
+    try {
+      const json = JSON.parse(m[1]);
+      const stats = ([] as any[])
+        .concat(json?.interactionStatistic || [])
+        .concat(json?.interactionStatistics || []);
+      for (const it of stats) {
+        const count = it?.userInteractionCount;
+        if (typeof count === 'number' && count > 0) return count;
+      }
+    } catch {}
+  }
+
+  // 4) aria-label textual
+  const aria = norm.match(/aria-label="([^"]*?(?:visualizaç(?:ão|ões)|views|reproduções|plays)[^"]*?)"/i);
+  if (aria && aria[1]) {
+    const got = extractViewsFromText(aria[1]);
+    if (typeof got === 'number') return got;
+  }
+
+  // 5) Fallback textual amplo (PT/EN) em todo o HTML normalizado
+  const got = extractViewsFromText(norm);
+  if (typeof got === 'number') return got;
+
+  return null;
+}
+
+// Extrai contagem numérica a partir de texto com padrões humanizados (k/mi/milhões), pt/en
+function extractViewsFromText(text: string): number | null {
+  const patterns = [
+    /(\d[\d\.,\s\u00A0\u202F]*)\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões)?\s*(visualizaç(?:ão|ões)|views|reproduções|plays)/gi,
+    /(visualizaç(?:ão|ões)|views|reproduções|plays)[^\d]{0,10}(\d[\d\.,\s\u00A0\u202F]*)(\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões))?/gi,
+  ];
+  let best: number | null = null;
+  const scaleOf = (s?: string): number => {
+    if (!s) return 1;
+    const x = s.toLowerCase();
+    if (x === 'k') return 1e3;
+    if (x === 'm' || x === 'mi' || x.includes('milh')) return 1e6; // mi | milhão | milhões
+    if (x === 'b' || x.includes('bilh')) return 1e9; // bilhão | bilhões
+    if (x === 'mil') return 1e3;
+    return 1;
+  };
+  const toNumber = (numStr: string, suffix?: string): number | null => {
+    // remove espaços, normaliza milhar/decimal (pt/en)
+    let s = numStr.replace(/[\s\u00A0\u202F]+/g, '');
+    if (suffix) {
+      s = s.replace(/\./g, '').replace(/,/g, '.');
+      const f = parseFloat(s);
+      if (!isFinite(f)) return null;
+      return Math.round(f * scaleOf(suffix));
+    }
+    s = s.replace(/[^\d]/g, '');
+    if (!s) return null;
+    const n = parseInt(s, 10);
+    return isFinite(n) ? n : null;
+  };
+  for (const re of patterns) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const rawNum = m[1] && /\d/.test(m[1]) ? m[1] : m[2];
+      const suf = (m[2] && /[A-Za-z\u00C0-\u017F]/.test(m[2])) ? m[2] : m[3];
+      const val = rawNum ? toNumber(rawNum, suf) : null;
+      if (typeof val === 'number' && val > 0) {
+        if (best === null || val > best) best = val;
+      }
+    }
+  }
+  return best;
+}
+// -- Utilitários para GraphQL web do Instagram --
 function extractLSDToken(html: string): string | null {
-  // Possíveis padrões para capturar o token LSD usado no cabeçalho X-FB-LSD
   const m1 = html.match(/"LSD"\s*,\s*\[\s*\]\s*,\s*\{\s*"token"\s*:\s*"([^"]+)"\s*\}/);
   if (m1) return m1[1];
   const m2 = html.match(/"lsd"\s*:\s*\{\s*"token"\s*:\s*"([^"]+)"\s*\}/i);
@@ -62,7 +170,7 @@ function mergeCookies(...sets: Array<string | null | undefined>): string | null 
   const bag = new Map<string, string>();
   for (const raw of sets) {
     if (!raw) continue;
-    const parts = raw.split(/,(?=[^;]+=)/g); // separa múltiplos Set-Cookie
+    const parts = raw.split(/,(?=[^;]+=)/g);
     for (const p of parts) {
       const seg = p.split(';')[0].trim();
       const eq = seg.indexOf('=');
@@ -74,14 +182,11 @@ function mergeCookies(...sets: Array<string | null | undefined>): string | null 
     }
   }
   if (bag.size === 0) return null;
-  return Array.from(bag.entries())
-    .map(([k, v]) => `${k}=${v}`)
-    .join('; ');
+  return Array.from(bag.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
 async function attemptGraphQL(shortcode: string, reelUrl: string, ctx?: DebugCtx): Promise<{ views?: number | null; caption?: string } | null> {
   try {
-    // 1) Tenta obter HTML do Reel e/ou home para extrair LSD e cookies
     const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     const commonHeaders: Record<string, string> = {
       'User-Agent': UA,
@@ -96,11 +201,11 @@ async function attemptGraphQL(shortcode: string, reelUrl: string, ctx?: DebugCtx
       'X-Requested-With': 'XMLHttpRequest',
     };
 
-  const r1 = await fetch(reelUrl, { headers: commonHeaders, redirect: 'follow', cache: 'no-store' });
+    const r1 = await fetch(reelUrl, { headers: commonHeaders, redirect: 'follow', cache: 'no-store' });
     const html1 = await r1.text();
     const lsd1 = extractLSDToken(html1);
     const setCookie1 = r1.headers.get('set-cookie');
-  if (ctx?.enabled) ctx.logs.push({ step: 'gql_prefetch_reel', ok: !!lsd1, status: r1.status, url: reelUrl, notes: `lsd:${!!lsd1} cookies:${!!setCookie1}` });
+    if (ctx?.enabled) ctx.logs.push({ step: 'gql_prefetch_reel', ok: !!lsd1, status: r1.status, url: reelUrl, notes: `lsd:${!!lsd1} cookies:${!!setCookie1}` });
 
     let lsd = lsd1;
     let cookie = setCookie1;
@@ -116,9 +221,8 @@ async function attemptGraphQL(shortcode: string, reelUrl: string, ctx?: DebugCtx
     }
 
     const cookies = mergeCookies(cookie);
-    if (!lsd) return null; // sem LSD, GraphQL web geralmente rejeita
+    if (!lsd) return null;
 
-    // 2) Monta chamada ao endpoint GraphQL com doc_id e variables
     const variables = {
       shortcode,
       fetch_tagged_user_count: null,
@@ -203,82 +307,6 @@ export function extractCaptionFromHtml(html: string): string {
   const cap = html.match(/"caption"\s*:\s*"([\s\S]*?)"/);
   if (cap && cap[1]) return cap[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
   return '';
-}
-
-export function extractViewsFromHtml(html: string): number | null {
-  // 1) Números diretos em JSON/blobs (snake_case)
-  const pc = html.match(/"play_count"\s*:\s*(\d+)/);
-  if (pc && pc[1]) return Number(pc[1]);
-  const vv = html.match(/"video_view_count"\s*:\s*(\d+)/);
-  if (vv && vv[1]) return Number(vv[1]);
-  const vc = html.match(/"view_count"\s*:\s*(\d+)/);
-  if (vc && vc[1]) return Number(vc[1]);
-  // 2) Possíveis camelCase em blobs JS
-  const vcc = html.match(/"viewCount"\s*:\s*(\d+)/);
-  if (vcc && vcc[1]) return Number(vcc[1]);
-  const pcc = html.match(/"playCount"\s*:\s*(\d+)/);
-  if (pcc && pcc[1]) return Number(pcc[1]);
-  // 3) JSON-LD: interactionStatistic -> userInteractionCount (às vezes representa views)
-  const ldMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || [];
-  for (const tag of ldMatches) {
-    const m = tag.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
-    if (!m) continue;
-    try {
-      const json = JSON.parse(m[1]);
-      const stats = ([] as any[])
-        .concat(json?.interactionStatistic || [])
-        .concat(json?.interactionStatistics || []);
-      for (const it of stats) {
-        const count = it?.userInteractionCount;
-        if (typeof count === 'number' && count > 0) return count;
-      }
-    } catch {}
-  }
-  // 4) Fallback textual (embed/DOM): "1.234.567 visualizações" | "2,5 mi views" | "120k views"
-  //    Buscamos diversas variantes em PT/EN e convertimos para número absoluto.
-  const patterns = [
-    /(\d[\d\.,\s]*)\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões)?\s*(visualizaç(?:ão|ões)|views|reproduções|plays)/gi,
-    /(visualizaç(?:ão|ões)|views|reproduções|plays)[^\d]{0,10}(\d[\d\.,\s]*)(\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões))?/gi,
-  ];
-  let best: number | null = null;
-  const scaleOf = (s?: string): number => {
-    if (!s) return 1;
-    const x = s.toLowerCase();
-    if (x === 'k') return 1e3;
-    if (x === 'm' || x === 'mi' || x.includes('milh')) return 1e6; // mi | milhão | milhões
-    if (x === 'b' || x.includes('bilh')) return 1e9; // bilhão | bilhões
-    if (x === 'mil') return 1e3;
-    return 1;
-  };
-  const toNumber = (numStr: string, suffix?: string): number | null => {
-    let s = numStr.replace(/\s+/g, '');
-    if (suffix) {
-      // nota: tratar decimal com vírgula
-      s = s.replace(/\./g, '').replace(/,/g, '.');
-      const f = parseFloat(s);
-      if (!isFinite(f)) return null;
-      return Math.round(f * scaleOf(suffix));
-    }
-    // sem sufixo: remover separadores de milhar e manter apenas dígitos
-    s = s.replace(/[^\d]/g, '');
-    if (!s) return null;
-    const n = parseInt(s, 10);
-    return isFinite(n) ? n : null;
-  };
-  for (const re of patterns) {
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) {
-      // Padrão pode capturar em posições diferentes conforme a regex usada acima
-      const rawNum = m[1] && /\d/.test(m[1]) ? m[1] : m[2];
-      const suf = (m[2] && /[A-Za-z]/.test(m[2])) ? m[2] : m[3];
-      const val = rawNum ? toNumber(rawNum, suf) : null;
-      if (typeof val === 'number' && val > 0) {
-        if (best === null || val > best) best = val; // pega o maior número plausível encontrado
-      }
-    }
-  }
-  if (typeof best === 'number') return best;
-  return null;
 }
 
 async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?: { strong?: boolean }): Promise<ReelInsights> {
