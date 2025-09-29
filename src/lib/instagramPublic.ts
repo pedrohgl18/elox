@@ -545,12 +545,14 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
       if (hasContent) {
         if (!firstContentHtml) firstContentHtml = h;
         if (typeof vvTry === 'number') {
-          htmlWithViews = h;
-          viewsFound = vvTry;
+          // guarda sempre o maior valor de views encontrado
+          if (viewsFound == null || vvTry > viewsFound) {
+            htmlWithViews = h;
+            viewsFound = vvTry;
+          }
         }
         if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}` });
-        // Continua a procurar uma variante que traga views explícitas (ex.: /embed/)
-        if (typeof vvTry === 'number') break;
+        // não interrompe: segue buscando variantes que eventualmente exponham número maior/mais confiável
         continue;
       }
       const isBlocked = containsLogin && !hasContent;
@@ -584,7 +586,9 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
   }
   const caption = extractCaptionFromHtml(html);
   const { hashtags, mentions } = extractHashtagsAndMentions(caption || '');
-  const views = typeof viewsFound === 'number' ? viewsFound : extractViewsFromHtml(html);
+  let views = typeof viewsFound === 'number' ? viewsFound : extractViewsFromHtml(html);
+  // Evita falso-positivo típico "1" de textos soltos
+  if (views === 1) views = null;
   if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_html', extra: { hasCaption: !!caption, hasViews: typeof views === 'number' } });
   return { url, shortcode, views: typeof views === 'number' && !Number.isNaN(views) ? views : null, hashtags, mentions };
 }
