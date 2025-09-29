@@ -20,9 +20,16 @@ export async function POST(req: Request) {
   try {
     const res = await collectInstagramWithSession(url, data.cookie);
     // persiste histórico
-    await supa.from('video_metrics').insert({ platform: 'instagram', url: res.url, shortcode: res.shortcode, views: res.views, hashtags: res.hashtags, mentions: res.mentions });
+    const ins = await supa
+      .from('video_metrics')
+      .insert({ platform: 'instagram', url: res.url, shortcode: res.shortcode, views: res.views, hashtags: res.hashtags, mentions: res.mentions });
+    if (ins.error) {
+      console.error('[instagram-collect] insert error:', ins.error);
+      return NextResponse.json({ error: ins.error.message }, { status: 500 });
+    }
     return NextResponse.json(res);
   } catch (e: any) {
+    console.error('[instagram-collect] collect error:', e);
     return NextResponse.json({ error: e.message || 'Failed to collect' }, { status: 500 });
   }
 }
