@@ -1,11 +1,9 @@
+'use client';
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 function useReelInsights() {
   const [url, setUrl] = React.useState('');
