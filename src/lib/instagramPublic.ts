@@ -8,6 +8,21 @@ export type ReelInsights = {
   mentions: string[];
 };
 
+// Debug structures (opcional)
+export type ReelDebugEntry = {
+  step: string;
+  ok?: boolean;
+  status?: number;
+  url?: string;
+  notes?: string;
+  extra?: Record<string, any>;
+};
+
+type DebugCtx = {
+  enabled: boolean;
+  logs: ReelDebugEntry[];
+};
+
 // Heurísticos da web do Instagram (não oficial e sujeito a mudanças)
 const IG_APP_ID = '936619743392459';
 const IG_ASBD_ID = '129477';
@@ -64,7 +79,7 @@ function mergeCookies(...sets: Array<string | null | undefined>): string | null 
     .join('; ');
 }
 
-async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ views?: number | null; caption?: string } | null> {
+async function attemptGraphQL(shortcode: string, reelUrl: string, ctx?: DebugCtx): Promise<{ views?: number | null; caption?: string } | null> {
   try {
     // 1) Tenta obter HTML do Reel e/ou home para extrair LSD e cookies
     const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -81,10 +96,11 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
       'X-Requested-With': 'XMLHttpRequest',
     };
 
-    const r1 = await fetch(reelUrl, { headers: commonHeaders, redirect: 'follow', cache: 'no-store' });
+  const r1 = await fetch(reelUrl, { headers: commonHeaders, redirect: 'follow', cache: 'no-store' });
     const html1 = await r1.text();
     const lsd1 = extractLSDToken(html1);
     const setCookie1 = r1.headers.get('set-cookie');
+  if (ctx?.enabled) ctx.logs.push({ step: 'gql_prefetch_reel', ok: !!lsd1, status: r1.status, url: reelUrl, notes: `lsd:${!!lsd1} cookies:${!!setCookie1}` });
 
     let lsd = lsd1;
     let cookie = setCookie1;
@@ -96,6 +112,7 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
       const setCookie2 = r2.headers.get('set-cookie');
       lsd = lsd2 || lsd;
       cookie = mergeCookies(cookie, setCookie2);
+      if (ctx?.enabled) ctx.logs.push({ step: 'gql_prefetch_home', ok: !!lsd2, status: r2.status, url: 'https://www.instagram.com/', notes: `lsd:${!!lsd2} cookies2:${!!setCookie2}` });
     }
 
     const cookies = mergeCookies(cookie);
@@ -129,19 +146,22 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
       },
       body: body.toString(),
     });
+    if (ctx?.enabled) ctx.logs.push({ step: 'gql_post', ok: resp.ok, status: resp.status, url: 'https://www.instagram.com/graphql/query', extra: { hasCookies: !!cookies } });
     if (!resp.ok) return null;
     const data = await resp.json().catch(() => null) as any;
     const postData = data?.data?.xdt_shortcode_media || data?.data?.shortcode_media;
+    if (ctx?.enabled) ctx.logs.push({ step: 'gql_parse', ok: !!postData, notes: postData ? 'found media' : 'no media' });
     if (!postData) return null;
     const views = typeof postData.video_view_count === 'number' ? postData.video_view_count : null;
     const caption = postData?.edge_media_to_caption?.edges?.[0]?.node?.text || postData?.caption || '';
     return { views, caption };
   } catch {
+    if (ctx?.enabled) ctx.logs.push({ step: 'gql_error', ok: false, notes: 'exception thrown' });
     return null;
   }
 }
 
-export async function fetchPublicHtml(targetUrl: string, cookies?: string | null): Promise<string> {
+export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx): Promise<string> {
   const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const headers: Record<string, string> = {
     'User-Agent': UA,
@@ -162,6 +182,7 @@ export async function fetchPublicHtml(targetUrl: string, cookies?: string | null
     cache: 'no-store',
   });
   const html = await res.text();
+  if (ctx?.enabled) ctx.logs.push({ step: 'html_fetch', ok: res.ok, status: res.status, url: targetUrl, notes: `len:${html.length}` });
   if (!res.ok) throw new Error(`Instagram respondeu ${res.status}`);
   return html;
 }
@@ -194,13 +215,14 @@ export function extractViewsFromHtml(html: string): number | null {
   return null;
 }
 
-export async function fetchReelPublicInsights(url: string): Promise<ReelInsights> {
+async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Promise<ReelInsights> {
   const shortcode = parseShortcode(url);
   if (!shortcode) throw new Error('URL de Reel inválida. Use /reel/{código}');
   // 0) Tenta obter via GraphQL web (se disponível)
-  const gql = await attemptGraphQL(shortcode, url).catch(() => null);
+  const gql = await attemptGraphQL(shortcode, url, ctx).catch(() => null);
   if (gql?.caption || typeof gql?.views === 'number') {
     const { hashtags, mentions } = extractHashtagsAndMentions(gql.caption || '');
+    if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_graphql' });
     return { url, shortcode, views: typeof gql.views === 'number' ? gql.views : null, hashtags, mentions };
   }
   // 1) Fallback: Tentar múltiplas variantes (original, canônica, embed, etc.)
@@ -218,6 +240,7 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
       cache: 'no-store',
     });
     sessionCookies = mergeCookies(homeRes.headers.get('set-cookie'));
+    if (ctx.enabled) ctx.logs.push({ step: 'home_cookies', ok: !!sessionCookies, status: homeRes.status, url: 'https://www.instagram.com/' });
   } catch {}
   const candidates = [
     url,
@@ -233,29 +256,45 @@ export async function fetchReelPublicInsights(url: string): Promise<ReelInsights
   let html: string | null = null;
   for (const candidate of candidates) {
     try {
-      const h = await fetchPublicHtml(candidate, sessionCookies);
+      const h = await fetchPublicHtml(candidate, sessionCookies, ctx);
       // Se tiver JSON-LD, provavelmente conseguimos extrair
       const hasLd = /application\/ld\+json/i.test(h);
       const isBlocked = /login|Entrar no Instagram|faça login/i.test(h) && !hasLd;
       if (!isBlocked || hasLd) {
         html = h;
+        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `hasLd:${hasLd}` });
         break;
       }
+      if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_blocked', ok: false, url: candidate, notes: `hasLd:${hasLd}` });
     } catch {
       // tenta o próximo
+      if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_error', ok: false, url: candidate });
     }
   }
   if (!html) {
     // Última tentativa: usar canônica mesmo bloqueada e tentar og:description
-    html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`, sessionCookies);
+    html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`, sessionCookies, ctx);
     const hasLd = /application\/ld\+json/i.test(html);
     const isBlocked = /login|Entrar no Instagram|faça login/i.test(html) && !hasLd;
     if (isBlocked && !hasLd) {
+      if (ctx.enabled) ctx.logs.push({ step: 'final_blocked', ok: false, url: `https://www.instagram.com/reel/${shortcode}/` });
       throw new Error('Instagram bloqueou a visualização pública para este conteúdo.');
     }
   }
   const caption = extractCaptionFromHtml(html);
   const { hashtags, mentions } = extractHashtagsAndMentions(caption || '');
   const views = extractViewsFromHtml(html);
+  if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_html', extra: { hasCaption: !!caption, hasViews: typeof views === 'number' } });
   return { url, shortcode, views: typeof views === 'number' && !Number.isNaN(views) ? views : null, hashtags, mentions };
+}
+
+export async function fetchReelPublicInsights(url: string): Promise<ReelInsights> {
+  const ctx: DebugCtx = { enabled: false, logs: [] };
+  return internalFetchReelPublicInsights(url, ctx);
+}
+
+export async function fetchReelPublicInsightsDebug(url: string): Promise<{ data: ReelInsights; debug: ReelDebugEntry[] }> {
+  const ctx: DebugCtx = { enabled: true, logs: [] };
+  const data = await internalFetchReelPublicInsights(url, ctx);
+  return { data, debug: ctx.logs };
 }
