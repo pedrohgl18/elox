@@ -16,7 +16,15 @@ export async function POST(req: Request) {
   try {
     // Coleta exclusivamente via Apify
     const ap = await runApifyInstagram(url).catch(() => null);
-    if (!ap) return NextResponse.json({ error: 'Apify did not return data. Check APIFY_TOKEN and actor configuration.' }, { status: 502 });
+    if (!ap) {
+      const actor = (process.env.APIFY_ACTOR || 'apify~instagram-scraper').replace('/', '~');
+      const waitSec = Math.max(5, Math.min(60, Number(process.env.APIFY_WAIT_SEC) || 25));
+      const configured = !!process.env.APIFY_TOKEN;
+      return NextResponse.json({
+        error: 'Apify did not return data. Check APIFY_TOKEN, APIFY_ACTOR and optionally APIFY_WAIT_SEC.',
+        hint: { configured, actor, waitSec }
+      }, { status: 502 });
+    }
     const shortcode = parseShortcode(url);
     const ins = await supa
       .from('video_metrics')

@@ -1,17 +1,7 @@
--- Supabase SQL: Instagram session + metrics with RLS
+-- Supabase SQL: Métricas de vídeos com RLS
 -- Requires: pgcrypto for gen_random_uuid (enabled by default in Supabase; else: CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 1) Tabela para armazenar a sessão do Instagram (apenas service role acessa)
-create table if not exists public.instagram_admin_session (
-  id uuid primary key default gen_random_uuid(),
-  cookie text not null,
-  updated_at timestamptz not null default now()
-);
-
--- Habilita RLS e não cria políticas: somente service role consegue acessar
-alter table public.instagram_admin_session enable row level security;
-
--- 2) Tabela para métricas coletadas (persistência histórica)
+-- Tabela para métricas coletadas (persistência histórica)
 create table if not exists public.video_metrics (
   id uuid primary key default gen_random_uuid(),
   platform text not null default 'instagram',
