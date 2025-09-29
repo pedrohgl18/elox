@@ -104,6 +104,12 @@ export function extractViewsFromHtml(html: string): number | null {
     const n = Number(ogViews[1]);
     if (isFinite(n) && n > 0) return n;
   }
+  // 3.55) Microdata: itemprop="interactionCount" (ex.: UserPlays:1234)
+  const micro = norm.match(/<meta[^>]+itemprop=["']interactionCount["'][^>]+content=["'][^"']*(?:UserPlays|UserView|Plays)[:\s]*(\d+)[^"']*["'][^>]*>/i);
+  if (micro && micro[1]) {
+    const n = Number(micro[1]);
+    if (isFinite(n) && n > 0) return n;
+  }
 
   // 3.6) Scripts JSON espalhados na página
   const scriptViews = extractViewsFromScriptsJson(norm);
@@ -181,7 +187,22 @@ function deepFindNumberByKeys(obj: any, keys: string[]): number | null {
   if (typeof obj === 'object') {
     for (const k of Object.keys(obj)) {
       const val = (obj as any)[k];
-      if (keys.includes(k) && typeof val === 'number' && val > 0) return val;
+      if (keys.includes(k)) {
+        // casos: número direto, string numérica, ou objeto com count/value/total
+        if (typeof val === 'number' && val > 0) return val;
+        if (typeof val === 'string') {
+          const n = Number(val.replace(/[^\d]/g, ''));
+          if (isFinite(n) && n > 0) return n;
+        }
+        if (val && typeof val === 'object') {
+          const cand = (val as any).count ?? (val as any).value ?? (val as any).total ?? (val as any).int64;
+          if (typeof cand === 'number' && cand > 0) return cand;
+          if (typeof cand === 'string') {
+            const n = Number(cand.replace(/[^\d]/g, ''));
+            if (isFinite(n) && n > 0) return n;
+          }
+        }
+      }
       const n = deepFindNumberByKeys(val, keys);
       if (typeof n === 'number' && n > 0) return n;
     }
@@ -417,8 +438,9 @@ async function attemptPublicJson(shortcode: string, ctx: DebugCtx, cookies?: str
 export async function fetchPublicHtml(targetUrl: string, cookies?: string | null, ctx?: DebugCtx, acceptLangOverride?: string): Promise<string> {
   const desktopUA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1';
-  const isMbasic = /(^|\.)mbasic\.instagram\.com$/i.test(new URL(targetUrl).hostname);
-  const UA = isMbasic ? mobileUA : desktopUA;
+  const host = new URL(targetUrl).hostname;
+  const isMobileHost = /(^|\.)mbasic\.instagram\.com$/i.test(host) || /(^|\.)m\.instagram\.com$/i.test(host);
+  const UA = isMobileHost ? mobileUA : desktopUA;
   const headers: Record<string, string> = {
     'User-Agent': UA,
     'Accept-Language': acceptLangOverride || 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -514,6 +536,9 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     // versões mobile básicas
     `https://mbasic.instagram.com/reel/${shortcode}/`,
     `https://mbasic.instagram.com/p/${shortcode}/`,
+    // versão mobile padrão
+    `https://m.instagram.com/reel/${shortcode}/`,
+    `https://m.instagram.com/p/${shortcode}/`,
   ];
   let html: string | null = null;
   let htmlWithViews: string | null = null;
@@ -551,7 +576,7 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
             viewsFound = vvTry;
           }
         }
-        if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}` });
+  if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}`, extra: { viewsValue: typeof vvTry === 'number' ? vvTry : null } });
         // não interrompe: segue buscando variantes que eventualmente exponham número maior/mais confiável
         continue;
       }
