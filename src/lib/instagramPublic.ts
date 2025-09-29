@@ -206,16 +206,38 @@ export function extractCaptionFromHtml(html: string): string {
 }
 
 export function extractViewsFromHtml(html: string): number | null {
+  // Clássicos em snake_case
   const pc = html.match(/"play_count"\s*:\s*(\d+)/);
   if (pc && pc[1]) return Number(pc[1]);
   const vv = html.match(/"video_view_count"\s*:\s*(\d+)/);
   if (vv && vv[1]) return Number(vv[1]);
   const vc = html.match(/"view_count"\s*:\s*(\d+)/);
   if (vc && vc[1]) return Number(vc[1]);
+  // Possíveis camelCase em blobs JS
+  const vcc = html.match(/"viewCount"\s*:\s*(\d+)/);
+  if (vcc && vcc[1]) return Number(vcc[1]);
+  const pcc = html.match(/"playCount"\s*:\s*(\d+)/);
+  if (pcc && pcc[1]) return Number(pcc[1]);
+  // JSON-LD: interactionStatistic -> userInteractionCount (às vezes representa views)
+  const ldMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || [];
+  for (const tag of ldMatches) {
+    const m = tag.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (!m) continue;
+    try {
+      const json = JSON.parse(m[1]);
+      const stats = ([] as any[])
+        .concat(json?.interactionStatistic || [])
+        .concat(json?.interactionStatistics || []);
+      for (const it of stats) {
+        const count = it?.userInteractionCount;
+        if (typeof count === 'number' && count > 0) return count;
+      }
+    } catch {}
+  }
   return null;
 }
 
-async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Promise<ReelInsights> {
+async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?: { strong?: boolean }): Promise<ReelInsights> {
   const shortcode = parseShortcode(url);
   if (!shortcode) throw new Error('URL de Reel inválida. Use /reel/{código}');
   // 0) Tenta obter via GraphQL web (se disponível)
@@ -261,7 +283,11 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Prom
       const hasLd = /application\/ld\+json/i.test(h);
       const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(h);
       const capTry = extractCaptionFromHtml(h);
-      const vvTry = extractViewsFromHtml(h);
+      let vvTry = extractViewsFromHtml(h);
+      if (!vvTry && opts?.strong) {
+        // Segunda tentativa (forte): varrer novamente por outras chaves e JSON-LD múltiplos
+        vvTry = extractViewsFromHtml(h); // já contempla JSON-LD e camelCase
+      }
       const containsLogin = /login|Entrar no Instagram|faça login/i.test(h);
       const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
       if (hasContent) {
@@ -286,7 +312,8 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Prom
     const hasLd = /application\/ld\+json/i.test(html);
     const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(html);
     const capTry = extractCaptionFromHtml(html);
-    const vvTry = extractViewsFromHtml(html);
+  let vvTry = extractViewsFromHtml(html);
+  if (!vvTry && opts?.strong) vvTry = extractViewsFromHtml(html);
     const containsLogin = /login|Entrar no Instagram|faça login/i.test(html);
     const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
     const isBlocked = containsLogin && !hasContent;
@@ -302,15 +329,15 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx): Prom
   return { url, shortcode, views: typeof views === 'number' && !Number.isNaN(views) ? views : null, hashtags, mentions };
 }
 
-export async function fetchReelPublicInsights(url: string): Promise<ReelInsights> {
+export async function fetchReelPublicInsights(url: string, opts?: { strong?: boolean }): Promise<ReelInsights> {
   const ctx: DebugCtx = { enabled: false, logs: [] };
-  return internalFetchReelPublicInsights(url, ctx);
+  return internalFetchReelPublicInsights(url, ctx, opts);
 }
 
-export async function fetchReelPublicInsightsDebug(url: string): Promise<{ data?: ReelInsights; debug: ReelDebugEntry[]; error?: string }> {
+export async function fetchReelPublicInsightsDebug(url: string, opts?: { strong?: boolean }): Promise<{ data?: ReelInsights; debug: ReelDebugEntry[]; error?: string }> {
   const ctx: DebugCtx = { enabled: true, logs: [] };
   try {
-    const data = await internalFetchReelPublicInsights(url, ctx);
+    const data = await internalFetchReelPublicInsights(url, ctx, opts);
     return { data, debug: ctx.logs };
   } catch (e: any) {
     const message = e?.message || 'Falha ao obter métricas';

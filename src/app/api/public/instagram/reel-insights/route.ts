@@ -7,19 +7,20 @@ import { fetchReelPublicInsights, fetchReelPublicInsightsDebug, parseShortcode }
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const url = (body?.url || '').trim();
-    const debugFlag = body?.debug === true || body?.debug === 1 || body?.debug === '1';
+  const url = (body?.url || '').trim();
+  const debugFlag = body?.debug === true || body?.debug === 1 || body?.debug === '1';
+  const strongFlag = body?.strong === true || body?.strong === 1 || body?.strong === '1';
     if (!url) return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 });
     const code = parseShortcode(url);
     if (!code) return NextResponse.json({ error: 'URL de Reel inválida. Use /reel/{código}' }, { status: 400 });
     if (debugFlag) {
-      const { data, debug, error } = await fetchReelPublicInsightsDebug(url);
+      const { data, debug, error } = await fetchReelPublicInsightsDebug(url, { strong: strongFlag });
       if (error && !data) {
         return NextResponse.json({ error, _debug: debug }, { status: 500 });
       }
       return NextResponse.json({ ...data, _debug: debug });
     } else {
-      const data = await fetchReelPublicInsights(url);
+      const data = await fetchReelPublicInsights(url, { strong: strongFlag });
       return NextResponse.json(data);
     }
   } catch (e: any) {
@@ -32,6 +33,8 @@ export async function GET(req: Request) {
   const url = (searchParams.get('url') || '').trim();
   const debugParam = searchParams.get('debug');
   const debugFlag = debugParam === '1' || debugParam === 'true';
+  const strongParam = searchParams.get('strong');
+  const strongFlag = strongParam === '1' || strongParam === 'true';
   if (!url) return NextResponse.json({ error: 'Parâmetro url é obrigatório' }, { status: 400 });
-  return POST(new Request(req.url, { method: 'POST', body: JSON.stringify({ url, debug: debugFlag }) } as any));
+  return POST(new Request(req.url, { method: 'POST', body: JSON.stringify({ url, debug: debugFlag, strong: strongFlag }) } as any));
 }

@@ -31,7 +31,7 @@ export function DashboardTables({ videos, payments }: DashboardTablesProps) {
         {v.socialMedia.toUpperCase()}
       </span>
     ),
-    views: v.views.toLocaleString('pt-BR'),
+  views: (v.views ?? undefined) !== undefined ? v.views.toLocaleString('pt-BR') : '—',
     ganho: <span className="text-green-400 font-medium">{formatCurrencyBRL(v.earnings)}</span>,
     status: <StatusBadge label={v.status} />,
     meta: (

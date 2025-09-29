@@ -10,6 +10,8 @@ function useReelInsights() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
+  const [debug, setDebug] = React.useState(false);
+  const [strong, setStrong] = React.useState(true);
 
   const fetchInsights = async () => {
     setError(null);
@@ -23,7 +25,7 @@ function useReelInsights() {
       const res = await fetch('/api/public/instagram/reel-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, debug, strong }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Falha ao buscar métricas');
@@ -35,11 +37,11 @@ function useReelInsights() {
     }
   };
 
-  return { url, setUrl, loading, error, data, fetchInsights };
+  return { url, setUrl, loading, error, data, fetchInsights, debug, setDebug, strong, setStrong };
 }
 
 export default function InstagramInsightsPage() {
-  const { url, setUrl, loading, error, data, fetchInsights } = useReelInsights();
+  const { url, setUrl, loading, error, data, fetchInsights, debug, setDebug, strong, setStrong } = useReelInsights();
   return (
     <div className="max-w-2xl mx-auto p-6">
       <Card>
@@ -54,6 +56,16 @@ export default function InstagramInsightsPage() {
                 value={url}
                 onChange={(e: any) => setUrl(e.currentTarget.value)}
               />
+            </div>
+            <div className="flex items-center gap-6">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={debug} onChange={(e) => setDebug(e.currentTarget.checked)} />
+                Debug
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={strong} onChange={(e) => setStrong(e.currentTarget.checked)} />
+                Heurística forte (views)
+              </label>
             </div>
             <div className="flex justify-end">
               <Button onClick={fetchInsights} disabled={loading}>
@@ -82,6 +94,12 @@ export default function InstagramInsightsPage() {
                     {(!data.mentions || data.mentions.length === 0) && <span className="text-slate-400">Nenhuma</span>}
                   </div>
                 </div>
+                {data._debug && (
+                  <div className="mt-4">
+                    <div className="text-slate-400">Debug:</div>
+                    <pre className="mt-2 text-xs bg-slate-900 p-3 rounded overflow-x-auto">{JSON.stringify(data._debug, null, 2)}</pre>
+                  </div>
+                )}
               </div>
             )}
           </div>
