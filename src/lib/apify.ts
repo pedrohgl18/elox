@@ -38,6 +38,24 @@ function extractCaptionFromItem(item: ApifyInstagramItem): string {
   return '';
 }
 
+function normalizeInstagramUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    if (u.hostname.includes('instagram.com')) {
+      // Normaliza /reels/{code}/ para /reel/{code}/ e garante barra no final
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && (parts[0] === 'reels' || parts[0] === 'reel' || parts[0] === 'p')) {
+        const kind = parts[0] === 'reels' ? 'reel' : parts[0];
+        const code = parts[1];
+        u.pathname = `/${kind}/${code}/`;
+      }
+      if (!u.pathname.endsWith('/')) u.pathname += '/';
+      return u.toString();
+    }
+  } catch {}
+  return raw;
+}
+
 async function startActorRunAndGetItems(token: string, actor: string, wait: number, input: Record<string, any>): Promise<ApifyInstagramItem[] | null> {
   const startUrl = `https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/runs?token=${encodeURIComponent(token)}&waitForFinish=${wait}`;
   const runRes = await fetch(startUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
@@ -76,20 +94,39 @@ export async function runApifyInstagram(url: string, opts?: { waitForFinishSec?:
   if (!token) return null; // sem token, não usa Apify
 
   const wait = Math.max(5, Math.min(60, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 25)));
-  // Tenta diferentes formatos de input conforme o actor
-  const inputs: Record<string, any>[] = [];
-  const direct = { directUrls: [url], resultsLimit: 1 } as Record<string, any>;
-  const start = { startUrls: [{ url }], resultsLimit: 1 } as Record<string, any>;
-  if (actor.toLowerCase().includes('hpix')) {
-    // Alguns atores baseados em Apify SDK costumam aceitar startUrls melhor
-    inputs.push(start, direct);
-  } else {
-    inputs.push(direct, start);
-  }
+  const normalizedUrl = normalizeInstagramUrl(url);
+  // Tentar com ator preferido e depois ator alternativo
+  const preferred = actor;
+  const alternate = preferred.toLowerCase().includes('hpix') ? 'apify~instagram-scraper' : 'hpix~ig-reels-scraper';
+  const actorsToTry = [preferred, alternate];
+
+  const baseInputs: Record<string, any>[] = [
+    { directUrls: [normalizedUrl] },
+    { startUrls: [{ url: normalizedUrl }] },
+    { urls: [normalizedUrl] },
+    { url: normalizedUrl },
+    { reelsUrls: [normalizedUrl] },
+    { reelUrls: [normalizedUrl] },
+  ];
+  const variants: ((b: Record<string, any>) => Record<string, any>)[] = [
+    (b) => ({ ...b }),
+    (b) => ({ ...b, resultsLimit: 1 }),
+    (b) => ({ ...b, maxItems: 1 }),
+  ];
 
   let items: ApifyInstagramItem[] | null = null;
-  for (const inp of inputs) {
-    items = await startActorRunAndGetItems(token, actor, wait, inp);
+  for (const act of actorsToTry) {
+    for (const b of baseInputs) {
+      for (const v of variants) {
+        const input = v(b);
+        items = await startActorRunAndGetItems(token, act, wait, input);
+        if (items && items.length) {
+          actor = act; // atualiza actor efetivo
+          break;
+        }
+      }
+      if (items && items.length) break;
+    }
     if (items && items.length) break;
   }
   if (!items || !items.length) return null;
