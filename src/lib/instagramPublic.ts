@@ -206,19 +206,19 @@ export function extractCaptionFromHtml(html: string): string {
 }
 
 export function extractViewsFromHtml(html: string): number | null {
-  // Clássicos em snake_case
+  // 1) Números diretos em JSON/blobs (snake_case)
   const pc = html.match(/"play_count"\s*:\s*(\d+)/);
   if (pc && pc[1]) return Number(pc[1]);
   const vv = html.match(/"video_view_count"\s*:\s*(\d+)/);
   if (vv && vv[1]) return Number(vv[1]);
   const vc = html.match(/"view_count"\s*:\s*(\d+)/);
   if (vc && vc[1]) return Number(vc[1]);
-  // Possíveis camelCase em blobs JS
+  // 2) Possíveis camelCase em blobs JS
   const vcc = html.match(/"viewCount"\s*:\s*(\d+)/);
   if (vcc && vcc[1]) return Number(vcc[1]);
   const pcc = html.match(/"playCount"\s*:\s*(\d+)/);
   if (pcc && pcc[1]) return Number(pcc[1]);
-  // JSON-LD: interactionStatistic -> userInteractionCount (às vezes representa views)
+  // 3) JSON-LD: interactionStatistic -> userInteractionCount (às vezes representa views)
   const ldMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || [];
   for (const tag of ldMatches) {
     const m = tag.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
@@ -234,6 +234,50 @@ export function extractViewsFromHtml(html: string): number | null {
       }
     } catch {}
   }
+  // 4) Fallback textual (embed/DOM): "1.234.567 visualizações" | "2,5 mi views" | "120k views"
+  //    Buscamos diversas variantes em PT/EN e convertimos para número absoluto.
+  const patterns = [
+    /(\d[\d\.,\s]*)\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões)?\s*(visualizaç(?:ão|ões)|views|reproduções|plays)/gi,
+    /(visualizaç(?:ão|ões)|views|reproduções|plays)[^\d]{0,10}(\d[\d\.,\s]*)(\s*(k|m|b|mi|mil|milhão|milhões|bilhão|bilhões))?/gi,
+  ];
+  let best: number | null = null;
+  const scaleOf = (s?: string): number => {
+    if (!s) return 1;
+    const x = s.toLowerCase();
+    if (x === 'k') return 1e3;
+    if (x === 'm' || x === 'mi' || x.includes('milh')) return 1e6; // mi | milhão | milhões
+    if (x === 'b' || x.includes('bilh')) return 1e9; // bilhão | bilhões
+    if (x === 'mil') return 1e3;
+    return 1;
+  };
+  const toNumber = (numStr: string, suffix?: string): number | null => {
+    let s = numStr.replace(/\s+/g, '');
+    if (suffix) {
+      // nota: tratar decimal com vírgula
+      s = s.replace(/\./g, '').replace(/,/g, '.');
+      const f = parseFloat(s);
+      if (!isFinite(f)) return null;
+      return Math.round(f * scaleOf(suffix));
+    }
+    // sem sufixo: remover separadores de milhar e manter apenas dígitos
+    s = s.replace(/[^\d]/g, '');
+    if (!s) return null;
+    const n = parseInt(s, 10);
+    return isFinite(n) ? n : null;
+  };
+  for (const re of patterns) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      // Padrão pode capturar em posições diferentes conforme a regex usada acima
+      const rawNum = m[1] && /\d/.test(m[1]) ? m[1] : m[2];
+      const suf = (m[2] && /[A-Za-z]/.test(m[2])) ? m[2] : m[3];
+      const val = rawNum ? toNumber(rawNum, suf) : null;
+      if (typeof val === 'number' && val > 0) {
+        if (best === null || val > best) best = val; // pega o maior número plausível encontrado
+      }
+    }
+  }
+  if (typeof best === 'number') return best;
   return null;
 }
 
@@ -276,6 +320,9 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
     `https://www.instagram.com/reel/${shortcode}/?locale=en_US`,
   ];
   let html: string | null = null;
+  let htmlWithViews: string | null = null;
+  let firstContentHtml: string | null = null;
+  let viewsFound: number | null = null;
   for (const candidate of candidates) {
     try {
       const h = await fetchPublicHtml(candidate, sessionCookies, ctx);
@@ -285,15 +332,21 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
       const capTry = extractCaptionFromHtml(h);
       let vvTry = extractViewsFromHtml(h);
       if (!vvTry && opts?.strong) {
-        // Segunda tentativa (forte): varrer novamente por outras chaves e JSON-LD múltiplos
-        vvTry = extractViewsFromHtml(h); // já contempla JSON-LD e camelCase
+        // Já incorporado dentro de extractViewsFromHtml o fallback textual; manter tentativa única
+        vvTry = extractViewsFromHtml(h);
       }
       const containsLogin = /login|Entrar no Instagram|faça login/i.test(h);
       const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
       if (hasContent) {
-        html = h;
+        if (!firstContentHtml) firstContentHtml = h;
+        if (typeof vvTry === 'number') {
+          htmlWithViews = h;
+          viewsFound = vvTry;
+        }
         if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_ok', ok: true, url: candidate, notes: `cap:${capTry ? capTry.length : 0} views:${typeof vvTry === 'number'} og:${ogDesc} ld:${hasLd}` });
-        break;
+        // Continua a procurar uma variante que traga views explícitas (ex.: /embed/)
+        if (typeof vvTry === 'number') break;
+        continue;
       }
       const isBlocked = containsLogin && !hasContent;
       if (isBlocked) {
@@ -306,14 +359,16 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
       if (ctx.enabled) ctx.logs.push({ step: 'html_candidate_error', ok: false, url: candidate });
     }
   }
+  // Define o HTML final preferindo onde encontramos views
+  html = htmlWithViews || firstContentHtml || null;
   if (!html) {
     // Última tentativa: usar canônica mesmo bloqueada e tentar og:description
     html = await fetchPublicHtml(`https://www.instagram.com/reel/${shortcode}/`, sessionCookies, ctx);
     const hasLd = /application\/ld\+json/i.test(html);
     const ogDesc = /<meta\s+property="og:description"\s+content="[^"]+"/i.test(html);
     const capTry = extractCaptionFromHtml(html);
-  let vvTry = extractViewsFromHtml(html);
-  if (!vvTry && opts?.strong) vvTry = extractViewsFromHtml(html);
+    let vvTry = extractViewsFromHtml(html);
+    if (!vvTry && opts?.strong) vvTry = extractViewsFromHtml(html);
     const containsLogin = /login|Entrar no Instagram|faça login/i.test(html);
     const hasContent = (capTry && capTry.trim().length > 0) || (typeof vvTry === 'number') || ogDesc || hasLd;
     const isBlocked = containsLogin && !hasContent;
@@ -324,7 +379,7 @@ async function internalFetchReelPublicInsights(url: string, ctx: DebugCtx, opts?
   }
   const caption = extractCaptionFromHtml(html);
   const { hashtags, mentions } = extractHashtagsAndMentions(caption || '');
-  const views = extractViewsFromHtml(html);
+  const views = typeof viewsFound === 'number' ? viewsFound : extractViewsFromHtml(html);
   if (ctx.enabled) ctx.logs.push({ step: 'result', ok: true, notes: 'from_html', extra: { hasCaption: !!caption, hasViews: typeof views === 'number' } });
   return { url, shortcode, views: typeof views === 'number' && !Number.isNaN(views) ? views : null, hashtags, mentions };
 }
