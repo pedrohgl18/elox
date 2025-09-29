@@ -162,7 +162,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                             'use server';
                             try {
                               const cookieHeader = cookies().toString();
-                              await fetch(`${config.baseUrl}/api/admin/instagram-collect`, {
+                              await fetch(`/api/admin/instagram-collect`, {
                                 method: 'POST',
                                 headers: {
                                   'content-type': 'application/json',
