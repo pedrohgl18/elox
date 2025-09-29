@@ -67,12 +67,18 @@ function mergeCookies(...sets: Array<string | null | undefined>): string | null 
 async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ views?: number | null; caption?: string } | null> {
   try {
     // 1) Tenta obter HTML do Reel e/ou home para extrair LSD e cookies
+    const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     const commonHeaders: Record<string, string> = {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36',
+      'User-Agent': UA,
       'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       Referer: 'https://www.instagram.com/',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-User': '?1',
+      'Sec-Fetch-Dest': 'document',
+      'X-Requested-With': 'XMLHttpRequest',
     };
 
     const r1 = await fetch(reelUrl, { headers: commonHeaders, redirect: 'follow', cache: 'no-store' });
@@ -116,6 +122,8 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
         'X-IG-App-ID': IG_APP_ID,
         'X-ASBD-ID': IG_ASBD_ID,
         Referer: reelUrl,
+        Accept: 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest',
         ...(cookies ? { Cookie: cookies } : {}),
       },
       body: body.toString(),
@@ -133,12 +141,19 @@ async function attemptGraphQL(shortcode: string, reelUrl: string): Promise<{ vie
 }
 
 export async function fetchPublicHtml(targetUrl: string): Promise<string> {
+  const UA = process.env.IG_SCRAPER_UA || process.env.SCRAPER_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const res = await fetch(targetUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36',
+      'User-Agent': UA,
       'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Referer': 'https://www.instagram.com/',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-User': '?1',
+      'Sec-Fetch-Dest': 'document',
+      'X-Requested-With': 'XMLHttpRequest',
     },
     redirect: 'follow',
     cache: 'no-store',
