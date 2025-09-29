@@ -135,7 +135,17 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                           <Button size="sm" variant="outline">Rejeitar</Button>
                         </form>
                       )}
-                      {/* Botão de atualizar métricas removido enquanto insights públicos estão desativados */}
+                      {v.socialMedia === 'instagram' && (
+                        <form action={async () => {
+                          'use server';
+                          try {
+                            await fetch('/api/admin/instagram-collect', { method: 'POST', body: JSON.stringify({ url: v.url }) } as any);
+                          } catch {}
+                          revalidatePath('/admin/videos');
+                        }}>
+                          <Button size="sm" variant="outline">Coletar métricas (sessão)</Button>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 ))}
