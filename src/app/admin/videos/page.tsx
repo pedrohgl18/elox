@@ -10,6 +10,8 @@ import { Video } from '@/lib/types';
 import { Select } from '@/components/ui/Select';
 import { revalidatePath } from 'next/cache';
 import { Input } from '@/components/ui/Input';
+import { getSupabaseServiceClient } from '@/lib/supabaseClient';
+import { cookies } from 'next/headers';
 
 export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string } }) {
   const session: any = await getServerSession(authOptions as any);
@@ -62,6 +64,23 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
   const end = start + pageSize;
   const pageItems = filtered.slice(start, end);
 
+  // Busca últimas métricas coletadas no Supabase por URL (service role, server-side)
+  const supa = getSupabaseServiceClient();
+  const latestByUrl = new Map<string, { views: number | null; hashtags?: string[]; mentions?: string[]; collected_at?: string }>();
+  if (supa && pageItems.length > 0) {
+    const urls = pageItems.map(({ v }) => v.url);
+    const { data: metrics } = await supa
+      .from('video_metrics')
+      .select('url,views,hashtags,mentions,collected_at')
+      .in('url', urls)
+      .order('collected_at', { ascending: false });
+    if (Array.isArray(metrics)) {
+      for (const m of metrics as any[]) {
+        if (!latestByUrl.has(m.url)) latestByUrl.set(m.url, { views: m.views ?? null, hashtags: m.hashtags || [], mentions: m.mentions || [], collected_at: m.collected_at });
+      }
+    }
+  }
+
   return (
       <Card>
         <CardHeader>
@@ -105,7 +124,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
             <table className="min-w-full divide-y divide-slate-800 text-sm sm:text-[0.95rem]">
               <thead className="bg-gradient-to-r from-slate-950 via-emerald-900/10 to-slate-950">
                 <tr>
-                  {['Clipador','Rede','URL','Enviado em','Validado em','Status','Ações'].map((h) => (
+                  {['Clipador','Rede','URL','Views (última)','Coletado em','Enviado em','Validado em','Status','Ações'].map((h) => (
                     <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
                   ))}
                 </tr>
@@ -121,6 +140,8 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                     </td>
                     <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.socialMedia.toUpperCase()}</td>
                     <td className="px-3 sm:px-4 py-2 break-words max-w-[260px] sm:max-w-none"><a href={v.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{v.url}</a></td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-200 whitespace-nowrap">{(() => { const m = latestByUrl.get(v.url); return typeof m?.views === 'number' ? m.views.toLocaleString('pt-BR') : '-'; })()}</td>
+                    <td className="px-3 sm:px-4 py-2 text-slate-400 whitespace-nowrap">{(() => { const m = latestByUrl.get(v.url); return m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'; })()}</td>
                     <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{new Date(v.submittedAt).toLocaleString('pt-BR')}</td>
                     <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap">{v.validatedAt ? new Date(v.validatedAt).toLocaleString('pt-BR') : '-'}</td>
                     <td className="px-3 sm:px-4 py-2"><StatusBadge label={v.status} /></td>
@@ -136,13 +157,26 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                         </form>
                       )}
                       {v.socialMedia === 'instagram' && (
-                        <form action={async () => {
-                          'use server';
-                          try {
-                            await fetch('/api/admin/instagram-collect', { method: 'POST', body: JSON.stringify({ url: v.url }) } as any);
-                          } catch {}
-                          revalidatePath('/admin/videos');
-                        }}>
+                        <form
+                          action={async () => {
+                            'use server';
+                            try {
+                              const cookieHeader = cookies().toString();
+                              await fetch(`${config.baseUrl}/api/admin/instagram-collect`, {
+                                method: 'POST',
+                                headers: {
+                                  'content-type': 'application/json',
+                                  // Encaminha cookies da sessão para a rota API (NextAuth)
+                                  cookie: cookieHeader,
+                                },
+                                // Evita cache e garante execução server-side
+                                cache: 'no-store',
+                                body: JSON.stringify({ url: v.url }),
+                              } as any);
+                            } catch {}
+                            revalidatePath('/admin/videos');
+                          }}
+                        >
                           <Button size="sm" variant="outline">Coletar métricas (sessão)</Button>
                         </form>
                       )}
