@@ -3,7 +3,7 @@
 import React from 'react';
 import { DataTable } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Video, Payment, SocialAccount } from '@/lib/types';
+import { Video, Payment } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 
 interface DashboardTablesProps {
@@ -34,6 +34,28 @@ export function DashboardTables({ videos, payments }: DashboardTablesProps) {
     views: v.views.toLocaleString('pt-BR'),
     ganho: <span className="text-green-400 font-medium">{formatCurrencyBRL(v.earnings)}</span>,
     status: <StatusBadge label={v.status} />,
+    meta: (
+      <div className="text-xs text-slate-300 space-y-1">
+        {v.hashtags?.length ? (
+          <div>
+            <span className="text-slate-500 mr-1">#:</span>
+            {v.hashtags.slice(0, 4).map((h) => (
+              <span key={h} className="mr-1">{h}</span>
+            ))}
+            {v.hashtags.length > 4 && <span>…</span>}
+          </div>
+        ) : null}
+        {v.mentions?.length ? (
+          <div>
+            <span className="text-slate-500 mr-1">@:</span>
+            {v.mentions.slice(0, 4).map((m) => (
+              <span key={m} className="mr-1">{m}</span>
+            ))}
+            {v.mentions.length > 4 && <span>…</span>}
+          </div>
+        ) : null}
+      </div>
+    ),
   }));
   const videoColumns = [
     { key: 'url', label: 'URL' },
@@ -41,6 +63,7 @@ export function DashboardTables({ videos, payments }: DashboardTablesProps) {
     { key: 'views', label: 'Views' },
     { key: 'ganho', label: 'Ganho' },
     { key: 'status', label: 'Status' },
+    { key: 'meta', label: 'Hashtags/Menções' },
   ];
 
   // Monta linhas para tabela simples de pagamentos
@@ -72,69 +95,4 @@ export function DashboardTables({ videos, payments }: DashboardTablesProps) {
   );
 }
 
-export function AdminSocialAccountsTable() {
-  const [data, setData] = React.useState<SocialAccount[]>([] as any);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const load = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/social-accounts');
-      if (!res.ok) throw new Error('Falha ao carregar');
-      const j = await res.json();
-      setData(j);
-    } catch (e: any) {
-      setError(e.message || 'Erro');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => { load(); }, []);
-
-  const setStatus = async (id: string, status: 'pending' | 'verified' | 'revoked') => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/social-accounts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-      if (!res.ok) throw new Error('Falha ao atualizar');
-      await load();
-    } catch (e: any) {
-      setError(e.message || 'Erro');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const rows = data.map((a) => ({
-    usuario: a.clipadorId,
-    plataforma: a.platform.toUpperCase(),
-    perfil: '@' + a.username,
-    status: <StatusBadge label={a.status} />,
-    acoes: (
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={() => setStatus(a.id, 'verified')}>Validar</Button>
-        <Button size="sm" variant="outline" onClick={() => setStatus(a.id, 'revoked')}>Revogar</Button>
-      </div>
-    ),
-  }));
-  const columns = [
-    { key: 'usuario', label: 'Usuário (id)' },
-    { key: 'plataforma', label: 'Plataforma' },
-    { key: 'perfil', label: 'Perfil' },
-    { key: 'status', label: 'Status' },
-    { key: 'acoes', label: 'Ações' },
-  ];
-
-  return (
-    <div className="space-y-3">
-      {error && <div className="text-sm text-red-400">{error}</div>}
-      <div className="flex justify-end">
-        <Button size="sm" onClick={load} disabled={loading}>{loading ? 'Atualizando...' : 'Recarregar'}</Button>
-      </div>
-      <DataTable data={rows} columns={columns} />
-    </div>
-  );
-}
+// AdminSocialAccountsTable removida: funcionalidade de contas sociais não está mais disponível.

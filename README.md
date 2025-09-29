@@ -71,68 +71,28 @@ npm run dev
 - `POST /api/competitions` — cria competição (admin)
 - `PATCH /api/competitions/:id` — atualiza competição (admin)
 
-## Integração Social e Fluxo de Envio por Hashtag
+## Envio de Vídeo sem Login Social (Instagram)
 
-### Visão geral
+Com base no requisito de remover todo o login social, o fluxo foi simplificado para:
 
-- Conexão de contas sociais acontece dentro do Dashboard do usuário (não no login).
-- O envio de posts por hashtag acontece exclusivamente na página "Enviar Vídeos".
-- Admin define hashtags obrigatórias por competição; usamos essas hashtags para filtrar posts do Instagram do usuário conectado.
+- O usuário cola a URL pública do vídeo (Reel) do Instagram na página "Enviar Vídeos" e escolhe a competição.
+- O backend extrai, de forma pública (via HTML da página), as seguintes informações:
+  - Views (quando disponíveis no HTML público do Reel)
+  - Hashtags e menções encontradas na legenda
+- Essas informações são salvas junto do vídeo e aparecem em "Meus Vídeos".
 
-### UI
+Observação: Como esse processo usa scraping do HTML público do Instagram, ele pode falhar ou não retornar views dependendo da página/conta e de mudanças do Instagram.
 
-- Dashboard do Usuário:
-  - Seção "Conectar Contas Sociais" com botões de OAuth e lista de contas conectadas.
-  - Sem envio de posts nessa tela.
+### Rotas de API relevantes
 
-- Página Enviar Vídeos (`/dashboard/upload`):
-  - Form padrão para colar URL e selecionar campanha.
-  - Seção "Selecionar Post do Instagram por Hashtag":
-    - Carrega competições ativas em que o usuário está inscrito.
-    - Sugere a hashtag obrigatória da competição (quando houver).
-    - Lista posts do Instagram do usuário com essa hashtag e permite enviar diretamente para a competição escolhida.
+- `GET /api/competitions/enrolled-active` — lista competições ativas em que o usuário está inscrito.
+- `POST /api/videos` — cria o vídeo. Se `socialMedia==='instagram'`, o servidor chama o coletor público para obter views/hashtags/menções automaticamente.
+- `POST /api/public/instagram/reel-insights` — utilitário público para testar a coleta de métricas a partir de uma URL de Reel.
 
-### Rotas de API novas
+### Teste rápido (sem login social)
 
-- `GET /api/competitions/enrolled-active` — lista competições em que o usuário está inscrito e ativas por data.
-- `GET /api/social-accounts` — lista contas sociais conectadas do usuário.
-- `POST /api/social-accounts` — adiciona/atualiza conta (MVP/mock; produção via OAuth).
-- `DELETE /api/social-accounts/:id` — remove conta (MVP/mock).
-- `GET /api/social-accounts/posts?platform=instagram&hashtag=%23xxx` — lista posts do Instagram do usuário autenticado filtrando por hashtag.
-- `POST /api/videos` — agora aceita `competitionId` e valida inscrição do usuário nessa competição.
+1. Acesse `/instagram/insights`.
+2. Cole a URL pública de um Reel, por exemplo: `https://www.instagram.com/reel/ABC123/`.
+3. Clique em Buscar para ver o shortcode, views (se disponível), hashtags e menções detectadas.
 
-### OAuth Instagram (Instagram Graph com Facebook Login)
-
-- Início: `GET /api/social-accounts/oauth/instagram/start`
-- Callback: `GET /api/social-accounts/oauth/instagram/callback`
-- Fluxo: Facebook Login → listar Páginas do usuário → obter `instagram_business_account` e token de Página → IG User ID.
-- Permissões mínimas: `instagram_basic`, `pages_show_list` (considere `pages_read_engagement` conforme o caso).
-- Pré-requisito: conta Instagram do usuário deve ser Business/Creator e vinculada a uma Página do Facebook.
-
-### Variáveis de Ambiente (Netlify)
-
-Defina as variáveis no painel do Netlify (Site settings → Build & deploy → Environment):
-
-- `FACEBOOK_APP_ID` (ou `INSTAGRAM_CLIENT_ID` para compatibilidade)
-- `FACEBOOK_APP_SECRET` (ou `INSTAGRAM_CLIENT_SECRET`)
-- `NEXTAUTH_SECRET` (se usar NextAuth)
-- `NEXTAUTH_URL` (ex.: `https://seu-site.netlify.app`)
-
-Redirect URI no Facebook Login:
-
-- `{BASE_URL}/api/social-accounts/oauth/instagram/callback`
-
-Observações de Deploy no Netlify:
-
-- Este projeto usa App Router do Next.js e rotas de API; o Netlify Netlify Adapter para Next cuida das funções serverless automaticamente.
-- Certifique-se de que `netlify.toml` está presente e a versão de Node no Netlify seja compatível com a usada localmente.
-
-### Banco de dados / Tokens
-
-- Tokens de acesso do Instagram são armazenados na tabela `social_accounts` (via Supabase), e nunca expostos ao client diretamente.
-- A listagem de posts por hashtag é feita server-side usando o token armazenado.
-
-### Experiência de Usuário
-
-- Mensagens de sucesso/erro aparecem como toasts globais.
-- O envio por hashtag exige que o usuário esteja conectado com o Instagram e inscrito na competição selecionada.
+Na página "Enviar Vídeos", colar a mesma URL criará o envio e persistirá essas informações, exibindo-as depois no dashboard.

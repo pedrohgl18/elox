@@ -140,20 +140,30 @@ class InMemoryDB {
       return this.videos.filter((v) => v.clipadorId === user.id);
     },
     getById: async (id: string) => this.videos.find((v) => v.id === id) || null,
-    create: async (user: AuthUserRecord, url: string, social: Video['socialMedia'], competitionId?: string | null) => {
+    create: async (user: AuthUserRecord, url: string, social: Video['socialMedia'], competitionId?: string | null, meta?: { views?: number | null; hashtags?: string[]; mentions?: string[] }) => {
       const video: Video = {
         id: uid('v_'),
         clipadorId: user.id,
         url,
         socialMedia: social,
-        views: 0,
+        views: meta?.views || 0,
         earnings: 0,
         status: VideoStatus.Pending,
         submittedAt: new Date(),
         competitionId: competitionId ?? undefined,
+        hashtags: meta?.hashtags,
+        mentions: meta?.mentions,
       };
       this.videos.push(video);
       return video;
+    },
+    updatePublicMeta: async (id: string, meta: { views?: number | null; hashtags?: string[]; mentions?: string[] }) => {
+      const v = this.videos.find((x) => x.id === id);
+      if (!v) return null;
+      if (typeof meta.views === 'number' && !Number.isNaN(meta.views)) v.views = meta.views;
+      if (meta.hashtags) v.hashtags = meta.hashtags;
+      if (meta.mentions) v.mentions = meta.mentions;
+      return v;
     },
     approve: async (id: string) => {
       const v = this.videos.find((x) => x.id === id);

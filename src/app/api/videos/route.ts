@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth/next';
 import { db } from '@/lib/database';
 import { validateVideoUrl } from '@/lib/validation';
+import { fetchReelPublicInsights } from '@/lib/instagramPublic';
 
 // rate limit simples em memória por usuário para POST (janela curta)
 const rateMap = new Map<string, { ts: number; count: number }>();
@@ -63,7 +64,18 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Você não está inscrito nesta campanha.' }, { status: 400 });
       }
     }
-    const v = await db.video.create(authUser, validation.url, body.socialMedia, competitionId);
+    // Se Instagram, tentar coletar insights públicos a partir da URL do Reel
+    let meta: { views?: number | null; hashtags?: string[]; mentions?: string[] } | undefined;
+    if (body.socialMedia === 'instagram') {
+      try {
+        const ins = await fetchReelPublicInsights(validation.url);
+        meta = { views: ins.views ?? undefined, hashtags: ins.hashtags, mentions: ins.mentions };
+      } catch (e) {
+        // Não bloquear o envio se falhar; apenas segue sem meta
+        meta = undefined;
+      }
+    }
+    const v = await db.video.create(authUser, validation.url, body.socialMedia, competitionId, meta);
     return NextResponse.json(v, { status: 201 });
   } catch (err: any) {
     const msg = (err?.message || '').toLowerCase();

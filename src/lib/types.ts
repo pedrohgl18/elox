@@ -34,6 +34,9 @@ export interface Video {
   submittedAt: Date;
   validatedAt?: Date;
   competitionId?: string; // campanha à qual o vídeo pertence (opcional)
+  // Campos de metadados públicos extraídos (quando possível)
+  hashtags?: string[];
+  mentions?: string[];
 }
 
 export interface Payment {

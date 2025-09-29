@@ -17,8 +17,7 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import Link from 'next/link';
-import { ConnectedSocialAccounts } from '@/components/user/ConnectedSocialAccounts';
-import { SocialOAuthButtons } from '@/components/user/SocialOAuthButtons';
+// Removido: UI de conexão de contas sociais
 
 export default async function UserDashboard() {
   const session: any = await getServerSession(authOptions as any);
@@ -117,23 +116,12 @@ export default async function UserDashboard() {
         )}
       </div>
 
-      {/* Charts and Social Accounts Section */}
+      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
         <Card className="lg:col-span-2">
           <CardHeader>Distribuição por Rede Social</CardHeader>
           <CardContent>
             <BarChart labels={labels} values={values} title="Vídeos Enviados" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>Conectar Contas Sociais</CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-slate-400">Conecte sua conta para listar suas postagens e enviar para competições.</p>
-              <SocialOAuthButtons providerOrder={["instagram","tiktok","kwai","youtube"]} />
-              <ConnectedSocialAccounts />
-              {/* Busca e envio de posts fica na página Enviar Vídeos */}
-            </div>
           </CardContent>
         </Card>
       </div>

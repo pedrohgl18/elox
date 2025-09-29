@@ -7,7 +7,6 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
-import { InstagramHashtagPicker } from '@/components/user/InstagramHashtagPicker';
 import { Upload, Video, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 import { Video as VideoType } from '@/lib/types';
 
@@ -61,18 +60,7 @@ export default async function UploadPage() {
               </CardContent>
             </Card>
 
-            {/* Seção de seleção de posts por hashtag (Instagram) */}
-            <Card className="mb-8">
-              <CardHeader>
-                <h2 className="text-xl font-semibold text-slate-100">Selecionar Post do Instagram por Hashtag</h2>
-                <p className="text-sm text-slate-400">
-                  Conecte sua conta do Instagram no Dashboard e busque suas postagens com a hashtag da campanha para enviar direto.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <InstagramHashtagPicker onPick={() => { /* toast de sucesso é global */ }} />
-              </CardContent>
-            </Card>
+            {/* Seção de seleção de posts por hashtag removida conforme nova diretriz (sem login social) */}
 
             {/* Dicas para Maximizar Ganhos */}
             <Card>
