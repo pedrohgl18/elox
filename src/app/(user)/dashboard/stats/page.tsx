@@ -13,7 +13,7 @@ import { Video as VideoType, Payment, Competition } from '@/lib/types';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 
-type Search = { from?: string; to?: string };
+type Search = { from?: string; to?: string; comp?: string };
 
 export default async function StatsPage({ searchParams }: { searchParams?: Search }) {
   const session: any = await getServerSession(authOptions as any);
@@ -40,6 +40,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
   // Filtros por data (submittedAt)
   const fromParam = searchParams?.from;
   const toParam = searchParams?.to;
+  const compParam = searchParams?.comp; // competition filter: id | 'none' | undefined (todas)
   let fromDate: Date | null = null;
   let toDate: Date | null = null;
   if (fromParam) {
@@ -54,6 +55,11 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
     const ts = new Date(v.submittedAt).getTime();
     if (fromDate && ts < fromDate.getTime()) return false;
     if (toDate && ts > toDate.getTime()) return false;
+    if (compParam === 'none') {
+      if (v.competitionId) return false;
+    } else if (compParam) {
+      if (v.competitionId !== compParam) return false;
+    }
     return true;
   });
 
@@ -165,6 +171,16 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
             <label className="block text-xs text-gray-600 mb-1">Até</label>
             <input type="date" name="to" defaultValue={toParam || ''} className="border rounded px-2 py-1 text-sm" />
           </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Competição</label>
+            <select name="comp" defaultValue={compParam || ''} className="border rounded px-2 py-1 text-sm min-w-[220px]">
+              <option value="">Todas</option>
+              <option value="none">Sem competição</option>
+              {competitions.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
           <button type="submit" className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">Aplicar</button>
           {(fromParam || toParam) && (
             <a href="/dashboard/stats" className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-sm">Limpar</a>
@@ -199,7 +215,15 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
                 </tr>
               </thead>
               <tbody>
-                {filteredVideos.map((v) => {
+                {([...filteredVideos]
+                  .sort((a, b) => {
+                    const ma = latestByUrl.get(a.url);
+                    const va = typeof ma?.views === 'number' ? ma.views : a.views || 0;
+                    const mb = latestByUrl.get(b.url);
+                    const vb = typeof mb?.views === 'number' ? mb.views : b.views || 0;
+                    return vb - va; // desc
+                  })
+                ).map((v) => {
                   const m = latestByUrl.get(v.url);
                   const views = typeof m?.views === 'number' ? m.views : v.views;
                   return (
