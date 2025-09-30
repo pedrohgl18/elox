@@ -214,7 +214,25 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
     if (items && items.length) break;
   }
   if (!items || !items.length) return null;
-  const item = items[0];
+  // Alguns atores retornam itens aninhados (item/data/video) ou arrays internas (items/videos)
+  const flat: any[] = [];
+  for (const it of items) {
+    if (!it) continue;
+    flat.push(it);
+    if (it.item) flat.push(it.item);
+    if (it.data) flat.push(it.data);
+    if (it.video) flat.push(it.video);
+    if (Array.isArray((it as any).items)) flat.push(...(it as any).items);
+    if (Array.isArray((it as any).videos)) flat.push(...(it as any).videos);
+  }
+  const pick = (arr: any[]) => arr.find((p) => {
+    const cand = [p?.stats?.playCount, p?.playCount, p?.videoViewCount, p?.views, p?.play_count, p?.stats?.play_count];
+    const n = cand.map((x) => (typeof x === 'string' ? Number(x) : (typeof x === 'number' ? x : NaN))).find((x) => isFinite(x) && x > 1);
+    if (isFinite(Number(n))) return true;
+    const wv = p?.webVideoUrl || p?.web_video_url || p?.url;
+    return typeof wv === 'string' && /tiktok\.com\/@.+\/video\//.test(wv);
+  }) || arr[0];
+  const item = pick(flat.length ? flat : items);
   // TikTok campos típicos: stats.playCount, diggCount, shareCount, commentCount; desc/text/title como legenda
   const caption = item?.desc || item?.text || item?.title || '';
   const { hashtags, mentions } = extractTagsFromText(caption);
