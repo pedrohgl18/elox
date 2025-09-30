@@ -8,6 +8,8 @@ export function getBaseUrl(): string {
   // Client-side: confia na origem atual (dinâmico, independente de porta)
   if (typeof window !== 'undefined') return window.location.origin;
   // Server: prioriza URLs explícitas do ambiente (Netlify/Vercel)
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL as string;
+  if (process.env.URL) return process.env.URL as string; // Netlify primary URL
   if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
   if (process.env.SITE_URL) return process.env.SITE_URL as string;
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL as string;

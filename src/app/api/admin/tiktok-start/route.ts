@@ -24,7 +24,8 @@ export async function POST(req: Request) {
   const webhooks = (secret && baseUrl) ? [{
     eventTypes: ['ACTOR.RUN.SUCCEEDED'],
     requestUrl: `${baseUrl.replace(/\/$/, '')}/api/admin/tiktok-webhook?secret=${encodeURIComponent(secret)}`,
-    payloadTemplate: JSON.stringify({ resource: '{{resource}}' }),
+    // Importante: enviar {{resource}} como objeto JSON (sem aspas), conforme docs do Apify
+    payloadTemplate: '{"resource":{{resource}}}',
   }] : undefined;
   const { runId } = await apifyStartRun(token, actor, input, 0, { webhooks });
   if (!runId) return NextResponse.json({ error: 'Failed to start Apify run' }, { status: 502 });
