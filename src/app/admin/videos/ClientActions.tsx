@@ -26,10 +26,10 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url }),
       });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(j?.error || 'Falha ao coletar');
-      }
+      const raw = await res.text();
+      let j: any = null;
+      try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+      if (!res.ok) throw new Error((j && j.error) || raw || 'Falha ao coletar');
       if (j?.skipped && j?.reason === 'recent') {
         show(`Coleta ignorada (cooldown). Última: ${j?.latestAt ? new Date(j.latestAt).toLocaleString('pt-BR') : 'há pouco'}.`, { type: 'info' });
       } else {

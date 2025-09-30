@@ -144,9 +144,11 @@ export function AdminApiKeysForm() {
               setTtTestLoading(true); setError(null); setSuccess(null); setTtTestOutput(null);
               try {
                 const res = await fetch('/api/admin/tiktok-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ttTestUrl.trim() }) });
-                const j = await res.json();
-                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
-                setTtTestOutput(j);
+                const raw = await res.text();
+                let j: any = null;
+                try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+                if (!res.ok) throw new Error((j && j.error) || raw || 'Falha na coleta');
+                setTtTestOutput(j ?? { raw });
                 setSuccess('Coleta TikTok concluída.');
               } catch (e: any) {
                 setTtTestOutput(e?.message ? { error: e.message } : null);
@@ -171,9 +173,11 @@ export function AdminApiKeysForm() {
               setTestLoading(true); setError(null); setSuccess(null); setTestOutput(null);
               try {
                 const res = await fetch('/api/admin/instagram-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: testUrl.trim() }) });
-                const j = await res.json();
-                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
-                setTestOutput(j);
+                const raw = await res.text();
+                let j: any = null;
+                try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+                if (!res.ok) throw new Error((j && j.error) || raw || 'Falha na coleta');
+                setTestOutput(j ?? { raw });
                 setSuccess('Coleta concluída.');
               } catch (e: any) {
                 setTestOutput(e?.message ? { error: e.message } : null);
@@ -207,9 +211,11 @@ export function AdminApiKeysForm() {
               setYtTestLoading(true); setError(null); setSuccess(null); setYtTestOutput(null);
               try {
                 const res = await fetch('/api/admin/youtube-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ytTestUrl.trim() }) });
-                const j = await res.json();
-                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
-                setYtTestOutput(j);
+                const raw = await res.text();
+                let j: any = null;
+                try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+                if (!res.ok) throw new Error((j && j.error) || raw || 'Falha na coleta');
+                setYtTestOutput(j ?? { raw });
                 setSuccess('Coleta YouTube concluída.');
               } catch (e: any) {
                 setYtTestOutput(e?.message ? { error: e.message } : null);
