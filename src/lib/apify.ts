@@ -181,14 +181,24 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   // Limitamos o wait a no máximo 10s (padrão 8) para evitar timeouts do servidor.
   const wait = Math.max(5, Math.min(10, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 8)));
   const normalizedUrl = normalizeTiktokUrl(url);
-  const baseInputs: Record<string, any>[] = [
-    { videoUrls: [normalizedUrl] },
-    { startUrls: [{ url: normalizedUrl }] },
-    { directUrls: [normalizedUrl] },
-    { urls: [normalizedUrl] },
-    { url: normalizedUrl },
-    { profiles: [], hashtags: [], videoUrls: [normalizedUrl] },
-  ];
+  const isVideoActor = actor.toLowerCase().includes('video-scraper');
+  const baseInputs: Record<string, any>[] = isVideoActor
+    ? [
+        { postURLs: [normalizedUrl] },
+        { startUrls: [{ url: normalizedUrl }] },
+        { directUrls: [normalizedUrl] },
+        { urls: [normalizedUrl] },
+        { url: normalizedUrl },
+      ]
+    : [
+        { videoUrls: [normalizedUrl] },
+        { postURLs: [normalizedUrl] },
+        { startUrls: [{ url: normalizedUrl }] },
+        { directUrls: [normalizedUrl] },
+        { urls: [normalizedUrl] },
+        { url: normalizedUrl },
+        { profiles: [], hashtags: [], videoUrls: [normalizedUrl] },
+      ];
   const variants: ((b: Record<string, any>) => Record<string, any>)[] = [
     (b) => ({ ...b }),
     (b) => ({ ...b, resultsLimit: 1 }),
@@ -205,11 +215,11 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   }
   if (!items || !items.length) return null;
   const item = items[0];
-  // TikTok campos típicos: stats.playCount, diggCount, shareCount, commentCount; desc como legenda
-  const caption = item?.desc || item?.title || item?.text || '';
+  // TikTok campos típicos: stats.playCount, diggCount, shareCount, commentCount; desc/text/title como legenda
+  const caption = item?.desc || item?.text || item?.title || '';
   const { hashtags, mentions } = extractTagsFromText(caption);
   const views = (() => {
-    const cand = [item?.stats?.playCount, item?.playCount, item?.videoViewCount, item?.views];
+    const cand = [item?.stats?.playCount, item?.playCount, item?.videoViewCount, item?.views, item?.play_count, item?.stats?.play_count];
     for (const v of cand) {
       const n = typeof v === 'string' ? Number(v) : (typeof v === 'number' ? v : NaN);
       if (isFinite(n) && n > 1) return Math.round(n);
