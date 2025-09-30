@@ -9,12 +9,24 @@ export async function POST(req: Request) {
   if ((session.user as any).role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const url = (body?.url || '').trim();
-  let actor = (process.env.APIFY_ACTOR_TIKTOK || 'clockworks~tiktok-scraper').replace('/', '~');
+  // Se não houver actor forçado por env, para URLs de vídeo priorizamos o tiktok-video-scraper (mais direto)
+  const forced = process.env.APIFY_ACTOR_TIKTOK;
+  let actor = (forced || 'clockworks~tiktok-scraper').replace('/', '~');
   if (!url) return NextResponse.json({ error: 'url is required' }, { status: 400 });
   const token = process.env.APIFY_TOKEN;
   if (!token) return NextResponse.json({ error: 'APIFY_TOKEN not configured' }, { status: 500 });
+  const isVideoUrl = (() => { try { const u = new URL(url); return u.hostname.includes('tiktok.com') && u.pathname.includes('/video/'); } catch { return false; } })();
+  if (!forced && isVideoUrl) actor = 'clockworks~tiktok-video-scraper';
   const input = actor.toLowerCase().includes('video-scraper') ? { postURLs: [url] } : { videoUrls: [url] };
-  const { runId } = await apifyStartRun(token, actor, input, 0);
+  // Configura webhook ad-hoc para persistir no backend ao finalizar
+  const secret = process.env.APIFY_WEBHOOK_SECRET;
+  const baseUrl = process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL; // defina no Netlify o domínio público
+  const webhooks = (secret && baseUrl) ? [{
+    eventTypes: ['ACTOR.RUN.SUCCEEDED'],
+    requestUrl: `${baseUrl.replace(/\/$/, '')}/api/admin/tiktok-webhook?secret=${encodeURIComponent(secret)}`,
+    payloadTemplate: JSON.stringify({ resource: '{{resource}}' }),
+  }] : undefined;
+  const { runId } = await apifyStartRun(token, actor, input, 0, { webhooks });
   if (!runId) return NextResponse.json({ error: 'Failed to start Apify run' }, { status: 502 });
   return NextResponse.json({ runId, actor });
 }

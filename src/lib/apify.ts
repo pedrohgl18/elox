@@ -267,8 +267,21 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
 }
 
 // --- Apify async helpers ---
-export async function apifyStartRun(token: string, actor: string, input: Record<string, any>, waitForFinish: number = 0): Promise<{ runId: string | null }> {
-  const url = `https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/runs?token=${encodeURIComponent(token)}&waitForFinish=${Math.max(0, waitForFinish)}`;
+export async function apifyStartRun(
+  token: string,
+  actor: string,
+  input: Record<string, any>,
+  waitForFinish: number = 0,
+  opts?: { webhooks?: Array<{ eventTypes: string[]; requestUrl: string; payloadTemplate?: string }> }
+): Promise<{ runId: string | null }> {
+  let url = `https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/runs?token=${encodeURIComponent(token)}&waitForFinish=${Math.max(0, waitForFinish)}`;
+  if (opts?.webhooks && opts.webhooks.length) {
+    try {
+      const str = JSON.stringify(opts.webhooks);
+      const b64 = Buffer.from(str, 'utf-8').toString('base64');
+      url += `&webhooks=${encodeURIComponent(b64)}`;
+    } catch {}
+  }
   const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
   if (!res.ok) return { runId: null };
   const j = await res.json().catch(() => null) as any;
@@ -287,7 +300,7 @@ export async function apifyGetRun(token: string, runId: string): Promise<{ statu
 }
 
 export async function apifyGetDatasetItems(token: string, datasetId: string, limit: number = 10): Promise<any[]> {
-  const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=${Math.max(1, Math.min(50, limit))}`;
+  const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=${Math.max(1, Math.min(50, limit))}&token=${encodeURIComponent(token)}`;
   const res = await fetch(url);
   if (!res.ok) return [];
   const j = await res.json().catch(() => []) as any[];
