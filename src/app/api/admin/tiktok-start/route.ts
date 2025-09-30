@@ -17,7 +17,10 @@ export async function POST(req: Request) {
   if (!token) return NextResponse.json({ error: 'APIFY_TOKEN not configured' }, { status: 500 });
   const isVideoUrl = (() => { try { const u = new URL(url); return u.hostname.includes('tiktok.com') && u.pathname.includes('/video/'); } catch { return false; } })();
   if (!forced && isVideoUrl) actor = 'clockworks~tiktok-video-scraper';
-  const input = actor.toLowerCase().includes('video-scraper') ? { postURLs: [url] } : { videoUrls: [url] };
+  const isVideoActor = actor.toLowerCase().includes('video-scraper');
+  const input = isVideoActor
+    ? { postURLs: [url], postUrls: [url], urls: [url], startUrls: [{ url }] }
+    : { videoUrls: [url], videoURLs: [url], urls: [url], startUrls: [{ url }], postURLs: [url] };
   // Configura webhook ad-hoc para persistir no backend ao finalizar
   const secret = process.env.APIFY_WEBHOOK_SECRET;
   const baseUrl = process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL; // defina no Netlify o domínio público

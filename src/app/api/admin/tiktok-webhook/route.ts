@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
-import { apifyGetDatasetItems } from '@/lib/apify';
+import { apifyGetDatasetItems, apifyGetRun } from '@/lib/apify';
 
 // Webhook para ACTOR.RUN.SUCCEEDED do Apify
 // Segurança: usamos um segredo simples via query param ?secret=... configurado por env APIFY_WEBHOOK_SECRET
@@ -20,7 +20,8 @@ export async function POST(req: Request) {
   const bodyText = await req.text();
   let payload: any = null;
   try { payload = JSON.parse(bodyText); } catch { payload = null; }
-  const dsId = payload?.resource?.defaultDatasetId || payload?.resource?.datasetId || payload?.resource?.defaultDatasetId || null;
+  let dsId: string | null = payload?.resource?.defaultDatasetId || payload?.resource?.datasetId || null;
+  const runId: string | null = payload?.resource?.id || payload?.id || null;
   const inputUrl = payload?.resource?.input?.videoUrls?.[0]
     || payload?.resource?.input?.postURLs?.[0]
     || payload?.resource?.input?.postUrls?.[0]
@@ -28,9 +29,23 @@ export async function POST(req: Request) {
     || payload?.resource?.input?.url
     || '';
 
+  // Se datasetId não veio no payload, tenta resolver via runId
+  if (!dsId && runId) {
+    for (let i = 0; i < 3; i++) {
+      const { datasetId } = await apifyGetRun(token, runId);
+      if (datasetId) { dsId = datasetId; break; }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
   if (!dsId) return NextResponse.json({ ok: true, note: 'no dataset id' });
 
-  const items = await apifyGetDatasetItems(token, dsId, 10);
+  // Dataset pode ainda estar sendo preenchido; faz algumas tentativas com backoff curto
+  let items: any[] = [];
+  for (let i = 0; i < 5; i++) {
+    items = await apifyGetDatasetItems(token, dsId, 10);
+    if (items?.length) break;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
   if (!items?.length) return NextResponse.json({ ok: true, note: 'no items yet' });
 
   // Pick best candidate and extract metrics
