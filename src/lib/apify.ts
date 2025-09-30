@@ -69,7 +69,7 @@ async function startActorRunAndGetItems(token: string, actor: string, wait: numb
   const runId = run?.data?.id || run?.data?.id?.toString?.();
   const datasetId = run?.data?.defaultDatasetId || run?.data?.datasetId;
   if (!datasetId) return null;
-  const itemsUrl = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=1`;
+  const itemsUrl = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=10`;
   const statusUrl = runId ? `https://api.apify.com/v2/actor-runs/${encodeURIComponent(runId)}` : null;
 
   // Poll dataset for items with backoff up to ~wait seconds (min 5 attempts)
@@ -181,28 +181,47 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   // Limitamos o wait a no máximo 10s (padrão 8) para evitar timeouts do servidor.
   const wait = Math.max(5, Math.min(10, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 8)));
   const normalizedUrl = normalizeTiktokUrl(url);
+  const rawUrl = url;
   const isVideoActor = actor.toLowerCase().includes('video-scraper');
   const baseInputs: Record<string, any>[] = isVideoActor
     ? [
         { postURLs: [normalizedUrl] },
+        { postURLs: [rawUrl] },
+        { postUrls: [normalizedUrl] },
+        { postUrls: [rawUrl] },
         { startUrls: [{ url: normalizedUrl }] },
+        { startUrls: [{ url: rawUrl }] },
         { directUrls: [normalizedUrl] },
+        { directUrls: [rawUrl] },
         { urls: [normalizedUrl] },
+        { urls: [rawUrl] },
         { url: normalizedUrl },
+        { url: rawUrl },
       ]
     : [
         { videoUrls: [normalizedUrl] },
+        { videoUrls: [rawUrl] },
+        { videoURLs: [normalizedUrl] },
+        { videoURLs: [rawUrl] },
         { postURLs: [normalizedUrl] },
+        { postURLs: [rawUrl] },
+        { postUrls: [normalizedUrl] },
+        { postUrls: [rawUrl] },
         { startUrls: [{ url: normalizedUrl }] },
+        { startUrls: [{ url: rawUrl }] },
         { directUrls: [normalizedUrl] },
+        { directUrls: [rawUrl] },
         { urls: [normalizedUrl] },
+        { urls: [rawUrl] },
         { url: normalizedUrl },
+        { url: rawUrl },
         { profiles: [], hashtags: [], videoUrls: [normalizedUrl] },
       ];
   const variants: ((b: Record<string, any>) => Record<string, any>)[] = [
     (b) => ({ ...b }),
     (b) => ({ ...b, resultsLimit: 1 }),
     (b) => ({ ...b, maxItems: 1 }),
+    (b) => ({ ...b, resultsPerPage: 1 }),
   ];
   let items: ApifyTiktokItem[] | null = null;
   for (const b of baseInputs) {
