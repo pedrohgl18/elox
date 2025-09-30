@@ -18,6 +18,10 @@ export function AdminApiKeysForm() {
   const [testUrl, setTestUrl] = React.useState('');
   const [testLoading, setTestLoading] = React.useState(false);
   const [testOutput, setTestOutput] = React.useState<any | null>(null);
+  const [ytConfigured, setYtConfigured] = React.useState<boolean>(false);
+  const [ytTestUrl, setYtTestUrl] = React.useState('');
+  const [ytTestLoading, setYtTestLoading] = React.useState(false);
+  const [ytTestOutput, setYtTestOutput] = React.useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -51,6 +55,15 @@ export function AdminApiKeysForm() {
         setApifyWait(j.waitSec || 0);
       } catch {
         if (mounted) setApifyConfigured(false);
+      }
+    })();
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/youtube-status');
+        const j = await res.json();
+        if (mounted) setYtConfigured(!!j.configured);
+      } catch {
+        if (mounted) setYtConfigured(false);
       }
     })();
     return () => { mounted = false; };
@@ -134,6 +147,42 @@ export function AdminApiKeysForm() {
           {testOutput && (
             <div className="text-xs bg-slate-900/60 border border-slate-800 rounded p-3 overflow-x-auto">
               <pre className="whitespace-pre-wrap break-words">{JSON.stringify(testOutput, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">YouTube Data API</div>
+              <div className="text-xs text-slate-400">Status via variável de ambiente YOUTUBE_API_KEY (Netlify).</div>
+            </div>
+            <div className={`text-xs px-2 py-1 rounded ${ytConfigured ? 'bg-emerald-900 text-emerald-200' : 'bg-slate-800 text-slate-200'}`}>
+              {ytConfigured ? 'Configurada' : 'Não configurada'}
+            </div>
+          </div>
+          <div className="text-sm font-medium">Teste de coleta (YouTube)</div>
+          <div className="text-xs text-slate-400">Informe a URL de um vídeo/short e execute um teste rápido. Isso cria um registro em video_metrics.</div>
+          <div className="flex gap-2">
+            <Input value={ytTestUrl} onChange={(e) => setYtTestUrl(e.currentTarget.value)} placeholder="https://www.youtube.com/watch?v=XXXXXXXXX" />
+            <Button type="button" disabled={ytTestLoading || !ytTestUrl.trim()} onClick={async () => {
+              setYtTestLoading(true); setError(null); setSuccess(null); setYtTestOutput(null);
+              try {
+                const res = await fetch('/api/admin/youtube-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ytTestUrl.trim() }) });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
+                setYtTestOutput(j);
+                setSuccess('Coleta YouTube concluída.');
+              } catch (e: any) {
+                setYtTestOutput(e?.message ? { error: e.message } : null);
+                setError(e.message || 'Erro');
+              } finally {
+                setYtTestLoading(false);
+              }
+            }}>{ytTestLoading ? 'Coletando…' : 'Executar teste'}</Button>
+          </div>
+          {ytTestOutput && (
+            <div className="text-xs bg-slate-900/60 border border-slate-800 rounded p-3 overflow-x-auto">
+              <pre className="whitespace-pre-wrap break-words">{JSON.stringify(ytTestOutput, null, 2)}</pre>
             </div>
           )}
         </div>

@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 
-export default function ClientActions({ url }: { url: string }) {
+type Platform = 'instagram' | 'youtube';
+
+export default function ClientActions({ url, platform = 'instagram' }: { url: string; platform?: Platform }) {
   const { show } = useToast();
   const [loading, setLoading] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -15,7 +17,8 @@ export default function ClientActions({ url }: { url: string }) {
   async function collect() {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/instagram-collect', {
+      const endpoint = platform === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -37,7 +40,8 @@ export default function ClientActions({ url }: { url: string }) {
     setHistLoading(true);
     try {
       const qs = new URLSearchParams({ url, limit: '10' }).toString();
-      const res = await fetch(`/api/admin/instagram-history?${qs}`);
+      const endpoint = platform === 'instagram' ? '/api/admin/instagram-history' : '/api/admin/youtube-history';
+      const res = await fetch(`${endpoint}?${qs}`);
       const j = await res.json();
       if (res.ok) {
         setHistory(j.items || []);
@@ -54,7 +58,7 @@ export default function ClientActions({ url }: { url: string }) {
   return (
     <div className="flex gap-2">
       <Button size="sm" variant="outline" onClick={collect} disabled={loading}>
-        {loading ? 'Coletando…' : 'Coletar métricas (Apify)'}
+        {loading ? 'Coletando…' : `Coletar métricas (${platform === 'instagram' ? 'Apify' : 'YouTube'})`}
       </Button>
   <Button size="sm" variant="outline" onClick={openDetails}>Detalhes</Button>
       <Modal open={open} onClose={() => setOpen(false)}>

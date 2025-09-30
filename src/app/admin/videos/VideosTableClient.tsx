@@ -49,7 +49,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
   const selectedRows = useMemo(() => rows.filter((r) => selected.has(r.id)), [rows, selected]);
 
   async function collectSelected() {
-    const targets = selectedRows.filter((r) => r.socialMedia === 'instagram');
+    const targets = selectedRows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube');
     if (!targets.length) return;
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
@@ -58,7 +58,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     async function worker(batch: VideoRow[]) {
       for (const r of batch) {
         try {
-          await fetch('/api/admin/instagram-collect', {
+          const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+          await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: r.url, force }),
@@ -87,8 +88,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
   }
 
   async function collectPage() {
-    // Coleta todos da página (apenas Instagram)
-    const targets = rows.filter((r) => r.socialMedia === 'instagram');
+    // Coleta todos da página (Instagram e YouTube)
+    const targets = rows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube');
     if (!targets.length) return;
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
@@ -96,7 +97,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     const concurrency = 4;
     const work = async (r: VideoRow) => {
       try {
-        await fetch('/api/admin/instagram-collect', {
+        const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+        await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: r.url, force }),
@@ -189,10 +191,10 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} disabled={running !== 'idle'}>
             Limpar seleção
           </Button>
-          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram').length === 0}>
+          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0}>
             Coletar métricas (selecionados)
           </Button>
-          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram').length === 0}>
+          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0}>
             Coletar métricas (página)
           </Button>
           <Button size="sm" variant="outline" onClick={exportCSV} disabled={running !== 'idle' || rows.length === 0}>
@@ -257,8 +259,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                       <Button size="sm" variant="outline">Rejeitar</Button>
                     </form>
                   )}
-                  {r.socialMedia === 'instagram' && (
-                    <ClientActions url={r.url} />
+                  {(r.socialMedia === 'instagram' || r.socialMedia === 'youtube') && (
+                    <ClientActions url={r.url} platform={r.socialMedia} />
                   )}
                 </td>
               </tr>

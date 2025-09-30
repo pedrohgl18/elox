@@ -134,6 +134,7 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
                   <option value="tiktok">TikTok</option>
                   <option value="instagram">Instagram</option>
                   <option value="kwai">Kwai</option>
+                  <option value="youtube">YouTube</option>
                 </Select>
               </div>
               <div className="w-full sm:w-auto">
