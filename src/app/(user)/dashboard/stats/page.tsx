@@ -312,7 +312,10 @@ export default async function StatsPage() {
                   <th className="text-right py-2 px-2">Views</th>
                   <th className="text-left py-2 px-2">Hashtags</th>
                   <th className="text-left py-2 px-2">Menções</th>
-                  <th className="text-left py-2 px-2">Coletado em</th>
+                  <th className="text-left py-2 px-2">
+                    Última coleta
+                    <span className="ml-1 text-xs text-gray-500" title="Data/hora da última coleta de métricas deste vídeo efetuada pelo admin">(?)</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
