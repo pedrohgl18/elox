@@ -6,7 +6,7 @@ import { RefreshCw, List as ListIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 
-type Platform = 'instagram' | 'youtube';
+type Platform = 'instagram' | 'youtube' | 'tiktok';
 
 export default function ClientActions({ url, platform = 'instagram' }: { url: string; platform?: Platform }) {
   const { show } = useToast();
@@ -18,7 +18,9 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
   async function collect() {
     setLoading(true);
     try {
-      const endpoint = platform === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+      const endpoint = platform === 'instagram'
+        ? '/api/admin/instagram-collect'
+        : (platform === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -53,7 +55,9 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
     setHistLoading(true);
     try {
       const qs = new URLSearchParams({ url, limit: '10' }).toString();
-      const endpoint = platform === 'instagram' ? '/api/admin/instagram-history' : '/api/admin/youtube-history';
+      const endpoint = platform === 'instagram'
+        ? '/api/admin/instagram-history'
+        : (platform === 'youtube' ? '/api/admin/youtube-history' : '/api/admin/tiktok-history');
       const res = await fetch(`${endpoint}?${qs}`);
       const j = await res.json();
       if (res.ok) {

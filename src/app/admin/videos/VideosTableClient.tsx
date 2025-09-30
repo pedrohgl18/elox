@@ -50,7 +50,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
   const selectedRows = useMemo(() => rows.filter((r) => selected.has(r.id)), [rows, selected]);
 
   async function collectSelected() {
-    const targets = selectedRows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube');
+    const targets = selectedRows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube' || r.socialMedia === 'tiktok');
     if (!targets.length) return;
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
@@ -59,7 +59,9 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     async function worker(batch: VideoRow[]) {
       for (const r of batch) {
         try {
-          const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+          const endpoint = r.socialMedia === 'instagram'
+            ? '/api/admin/instagram-collect'
+            : (r.socialMedia === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
           await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -89,8 +91,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
   }
 
   async function collectPage() {
-    // Coleta todos da página (Instagram e YouTube)
-    const targets = rows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube');
+    // Coleta todos da página (Instagram, YouTube e TikTok)
+    const targets = rows.filter((r) => r.socialMedia === 'instagram' || r.socialMedia === 'youtube' || r.socialMedia === 'tiktok');
     if (!targets.length) return;
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
@@ -98,7 +100,9 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     const concurrency = 4;
     const work = async (r: VideoRow) => {
       try {
-        const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+        const endpoint = r.socialMedia === 'instagram'
+          ? '/api/admin/instagram-collect'
+          : (r.socialMedia === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
         await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -192,10 +196,10 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} disabled={running !== 'idle'}>
             Limpar seleção
           </Button>
-          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0} title="Coletar métricas dos selecionados">
+          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube' || r.socialMedia === 'tiktok').length === 0} title="Coletar métricas dos selecionados">
             Coletar (sel.)
           </Button>
-          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0} title="Coletar métricas de todos desta página">
+          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube' || r.socialMedia === 'tiktok').length === 0} title="Coletar métricas de todos desta página">
             Coletar (pág.)
           </Button>
           <Button size="sm" variant="outline" onClick={exportCSV} disabled={running !== 'idle' || rows.length === 0} title="Exportar CSV da página ou dos selecionados">
@@ -296,8 +300,8 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                       <Button size="sm" variant="outline">Rejeitar</Button>
                     </form>
                   )}
-                  {(r.socialMedia === 'instagram' || r.socialMedia === 'youtube') && (
-                    <ClientActions url={r.url} platform={r.socialMedia} />
+                  {(r.socialMedia === 'instagram' || r.socialMedia === 'youtube' || r.socialMedia === 'tiktok') && (
+                    <ClientActions url={r.url} platform={r.socialMedia as any} />
                   )}
                 </td>
               </tr>

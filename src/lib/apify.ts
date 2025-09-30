@@ -1,4 +1,5 @@
 export type ApifyInstagramItem = any;
+export type ApifyTiktokItem = any;
 
 function env(k: string): string | undefined {
   return process.env[k];
@@ -134,5 +135,67 @@ export async function runApifyInstagram(url: string, opts?: { waitForFinishSec?:
   const caption = extractCaptionFromItem(item);
   const views = extractViewsFromItem(item);
   const { hashtags, mentions } = extractTagsFromText(caption || '');
+  return { views, hashtags, mentions };
+}
+
+// --- TikTok ---
+function normalizeTiktokUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    if (!u.hostname.includes('tiktok.com')) return raw;
+    // Normaliza /@user/video/12345 formato
+    const parts = u.pathname.split('/').filter(Boolean);
+    const vidIdx = parts.findIndex((p) => p === 'video');
+    if (vidIdx > 0 && parts[vidIdx + 1]) {
+      const user = parts[vidIdx - 1]?.startsWith('@') ? parts[vidIdx - 1] : parts[vidIdx - 1] ? `@${parts[vidIdx - 1]}` : '@user';
+      const id = parts[vidIdx + 1];
+      u.pathname = `/${user}/video/${id}`;
+    }
+    if (!u.pathname.endsWith('/')) u.pathname += '/';
+    return u.toString();
+  } catch { return raw; }
+}
+
+export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: number; actorId?: string }): Promise<{ views: number | null; hashtags: string[]; mentions: string[] } | null> {
+  const token = env('APIFY_TOKEN');
+  let actor = opts?.actorId || env('APIFY_ACTOR_TIKTOK') || 'clockworks~tiktok-scraper';
+  if (actor.includes('/')) actor = actor.replace('/', '~');
+  if (!token) return null;
+  const wait = Math.max(5, Math.min(60, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 25)));
+  const normalizedUrl = normalizeTiktokUrl(url);
+  const baseInputs: Record<string, any>[] = [
+    { directUrls: [normalizedUrl] },
+    { startUrls: [{ url: normalizedUrl }] },
+    { urls: [normalizedUrl] },
+    { url: normalizedUrl },
+    { videoUrls: [normalizedUrl] },
+  ];
+  const variants: ((b: Record<string, any>) => Record<string, any>)[] = [
+    (b) => ({ ...b }),
+    (b) => ({ ...b, resultsLimit: 1 }),
+    (b) => ({ ...b, maxItems: 1 }),
+  ];
+  let items: ApifyTiktokItem[] | null = null;
+  for (const b of baseInputs) {
+    for (const v of variants) {
+      const input = v(b);
+      items = await startActorRunAndGetItems(token, actor, wait, input);
+      if (items && items.length) break;
+    }
+    if (items && items.length) break;
+  }
+  if (!items || !items.length) return null;
+  const item = items[0];
+  // TikTok campos típicos: stats.playCount, diggCount, shareCount, commentCount; desc como legenda
+  const caption = item?.desc || item?.title || item?.text || '';
+  const { hashtags, mentions } = extractTagsFromText(caption);
+  const views = (() => {
+    const cand = [item?.stats?.playCount, item?.playCount, item?.videoViewCount, item?.views];
+    for (const v of cand) {
+      const n = typeof v === 'string' ? Number(v) : (typeof v === 'number' ? v : NaN);
+      if (isFinite(n) && n > 1) return Math.round(n);
+    }
+    return null;
+  })();
   return { views, hashtags, mentions };
 }
