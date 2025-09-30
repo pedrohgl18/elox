@@ -69,6 +69,7 @@ export async function POST(req: Request) {
     const v = await db.video.create(authUser, validation.url, body.socialMedia, competitionId, meta);
     return NextResponse.json(v, { status: 201 });
   } catch (err: any) {
+    console.error('[videos.create] error:', err);
     const rawMsg = String(err?.message || '');
     const msg = rawMsg.toLowerCase();
     const code = err?.code || err?.status || '';
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
     // Foreign key: usuário não existe na tabela profiles
-    if (msg.includes('violates foreign key constraint') || msg.includes('clipador_id')) {
+    if (code === '23503' || msg.includes('violates foreign key constraint') || msg.includes('clipador_id')) {
       return NextResponse.json({
         error: 'Conta não reconhecida no banco para salvar o vídeo. Refaça o login ou contate o administrador.',
         hint: 'Verifique se o usuário existe em public.profiles e se o id do token corresponde ao id na tabela.',

@@ -27,30 +27,28 @@ Campos:
 
 - UNIQUE(email)
 - UNIQUE(username)
-- BTREE(role)
+ social_media: text CHECK (social_media IN ('tiktok','instagram','kwai','youtube'))
 
 ### 2. videos
 
-Campos:
+ allowed_platforms: text[] DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[]
 
 - id: uuid PK DEFAULT gen_random_uuid()
 - clipador_id: uuid REFERENCES profiles(id) ON DELETE CASCADE
-- url: text NOT NULL
+ Implementar adapter (videos, competitions, payments, profiles)
 - social_media: text CHECK (social_media IN ('tiktok','instagram','kwai'))
 - views: bigint DEFAULT 0
 - earnings: numeric(12,2) DEFAULT 0
 - status: text CHECK (status IN ('PENDING','APPROVED','REJECTED')) DEFAULT 'PENDING'
 - submitted_at: timestamptz DEFAULT now()
-- validated_at: timestamptz NULL
 
-Índices:
-
-- BTREE(clipador_id)
+-- videos
 - BTREE(status)
+
 
 ### 3. payments
 
-Campos:
+  social_media text CHECK (social_media IN ('tiktok','instagram','kwai','youtube')),
 
 - id: uuid PK DEFAULT gen_random_uuid()
 - clipador_id: uuid REFERENCES profiles(id) ON DELETE CASCADE
@@ -58,7 +56,7 @@ Campos:
 - status: text CHECK (status IN ('PENDING','PROCESSED','FAILED')) DEFAULT 'PENDING'
 - requested_at: timestamptz DEFAULT now()
 - processed_at: timestamptz NULL
-
+-- competitions
 Índices:
 
 - BTREE(clipador_id)
@@ -69,7 +67,7 @@ Campos:
 Campos:
 
 - id: uuid PK DEFAULT gen_random_uuid()
-- name: text NOT NULL
+  allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[],
 - description: text
 - banner_image_url: text
 - start_date: date NOT NULL

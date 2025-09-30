@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.competitions (
   end_date date NOT NULL,
   is_active boolean DEFAULT true,
   status text CHECK (status IN ('SCHEDULED','ACTIVE','COMPLETED')),
-  allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai']::text[],
+  allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[],
   required_hashtags text[] DEFAULT ARRAY[]::text[],
   required_mentions text[] DEFAULT ARRAY[]::text[],
   created_at timestamptz DEFAULT now()
