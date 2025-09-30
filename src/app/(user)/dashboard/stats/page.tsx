@@ -11,6 +11,7 @@ import { BarChart } from '@/components/charts/BarChart';
 import { BarChart3, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lucide-react';
 import { Video as VideoType, Payment, Competition } from '@/lib/types';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 
 type Search = { from?: string; to?: string };
 
@@ -170,6 +171,71 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
           )}
         </form>
       </div>
+
+      {/* Métricas por Vídeo (destaque no topo) */}
+      <Card className="mb-8 border border-slate-200 shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Métricas por Vídeo</h3>
+            {(fromParam || toParam) && (
+              <span className="text-xs text-gray-500">Período: {fromParam || 'início'} → {toParam || 'agora'}</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-2">Rede</th>
+                  <th className="text-left py-2 px-2">URL</th>
+                  <th className="text-right py-2 px-2">Views (última)</th>
+                  <th className="text-left py-2 px-2">Hashtags</th>
+                  <th className="text-left py-2 px-2">Menções</th>
+                  <th className="text-left py-2 px-2">
+                    Última coleta
+                    <span className="ml-1 text-xs text-gray-500" title="Data/hora da última coleta de métricas deste vídeo efetuada pelo admin">(?)</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVideos.map((v) => {
+                  const m = latestByUrl.get(v.url);
+                  const views = typeof m?.views === 'number' ? m.views : v.views;
+                  return (
+                    <tr key={v.id} className="border-b border-gray-100 align-top">
+                      <td className="py-2 px-2 font-medium text-gray-700">
+                        <span className="inline-flex items-center">
+                          <SocialIcon platform={v.socialMedia as any} className="h-4 w-4 mr-2" />
+                          <span className="uppercase text-xs text-gray-600">{v.socialMedia}</span>
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 max-w-[420px]">
+                        <a href={v.url} className="text-blue-600 underline block truncate" title={v.url} target="_blank" rel="noreferrer">{v.url}</a>
+                      </td>
+                      <td className="py-2 px-2 text-right">{typeof views === 'number' ? views.toLocaleString() : '-'}</td>
+                      <td className="py-2 px-2">
+                        {(m?.hashtags || []).length ? (
+                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700">{t}</span>)}</div>
+                        ) : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-2 px-2">
+                        {(m?.mentions || []).length ? (
+                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700">{t}</span>)}</div>
+                        ) : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-2 px-2">{m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredVideos.length === 0 && (
+              <div className="text-center py-8 text-sm text-gray-500">Sem vídeos para o período selecionado.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPIs Resumo */}
       <div className="grid gap-6 mb-8 lg:grid-cols-4 md:grid-cols-2">
@@ -347,60 +413,6 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
         </CardContent>
       </Card>
 
-      {/* Métricas por Vídeo (última coleta) */}
-      <Card className="mt-8">
-        <CardHeader>
-          <h3 className="text-lg font-semibold">Métricas por Vídeo (última coleta)</h3>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Rede</th>
-                  <th className="text-left py-2 px-2">URL</th>
-                  <th className="text-right py-2 px-2">Views</th>
-                  <th className="text-left py-2 px-2">Hashtags</th>
-                  <th className="text-left py-2 px-2">Menções</th>
-                  <th className="text-left py-2 px-2">
-                    Última coleta
-                    <span className="ml-1 text-xs text-gray-500" title="Data/hora da última coleta de métricas deste vídeo efetuada pelo admin">(?)</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVideos.map((v) => {
-                  const m = latestByUrl.get(v.url);
-                  const views = typeof m?.views === 'number' ? m.views : v.views;
-                  return (
-                    <tr key={v.id} className="border-b border-gray-100 align-top">
-                      <td className="py-2 px-2 font-medium uppercase text-gray-700">{v.socialMedia}</td>
-                      <td className="py-2 px-2 max-w-[340px]">
-                        <a href={v.url} className="text-brand-600 underline break-all" target="_blank" rel="noreferrer">{v.url}</a>
-                      </td>
-                      <td className="py-2 px-2 text-right">{typeof views === 'number' ? views.toLocaleString() : '-'}</td>
-                      <td className="py-2 px-2">
-                        {(m?.hashtags || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
-                        ) : <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-2 px-2">
-                        {(m?.mentions || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
-                        ) : <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-2 px-2">{m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {filteredVideos.length === 0 && (
-              <div className="text-center py-8 text-sm text-gray-500">Você ainda não enviou vídeos.</div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </UserLayout>
   );
 }
