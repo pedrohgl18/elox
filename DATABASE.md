@@ -11,7 +11,6 @@ Usaremos **PostgreSQL gerenciado** pelo Supabase para persistir usuários (perfi
 ### 1. profiles (usuários / clipadores e admins)
 
 Campos:
-
 - id: uuid (Primary Key) – deve corresponder ao auth user id (se futuramente usarmos Supabase Auth) ou gerar via função `gen_random_uuid()`.
 - email: text UNIQUE NOT NULL
 - username: text UNIQUE NOT NULL
@@ -24,7 +23,6 @@ Campos:
 - password_hash: text (armazenar hash bcrypt para integração com autenticação custom futura)
 
 Índices:
-
 - UNIQUE(email)
 - UNIQUE(username)
  social_media: text CHECK (social_media IN ('tiktok','instagram','kwai','youtube'))
@@ -37,7 +35,6 @@ Campos:
 - clipador_id: uuid REFERENCES profiles(id) ON DELETE CASCADE
  Implementar adapter (videos, competitions, payments, profiles)
 - social_media: text CHECK (social_media IN ('tiktok','instagram','kwai'))
-- views: bigint DEFAULT 0
 - earnings: numeric(12,2) DEFAULT 0
 - status: text CHECK (status IN ('PENDING','APPROVED','REJECTED')) DEFAULT 'PENDING'
 - submitted_at: timestamptz DEFAULT now()
@@ -47,7 +44,6 @@ Campos:
 
 
 ### 3. payments
-
   social_media text CHECK (social_media IN ('tiktok','instagram','kwai','youtube')),
 
 - id: uuid PK DEFAULT gen_random_uuid()
@@ -62,7 +58,6 @@ Campos:
 - BTREE(clipador_id)
 - BTREE(status)
 
-### 4. competitions
 
 Campos:
 
