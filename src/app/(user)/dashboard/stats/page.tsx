@@ -12,6 +12,8 @@ import { BarChart3, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lu
 import { Video as VideoType, Payment, Competition } from '@/lib/types';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 
 type Search = { from?: string; to?: string; comp?: string };
 
@@ -154,110 +156,101 @@ export default async function StatsPage({ searchParams }: { searchParams?: Searc
       {/* Header e filtros */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="bg-purple-100 p-2 rounded-lg">
-            <BarChart3 className="h-6 w-6 text-purple-600" />
+          <div className="p-2 rounded-lg bg-slate-900 text-purple-300">
+            <BarChart3 className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Estatísticas</h1>
-            <p className="text-gray-600">Análise detalhada do seu desempenho</p>
+            <h1 className="text-3xl font-bold text-slate-100">Estatísticas</h1>
+            <p className="text-slate-400">Acompanhe a performance dos seus vídeos por período e competição</p>
           </div>
         </div>
-        <form method="get" className="flex flex-wrap items-end gap-3">
+        <form method="get" className="flex flex-wrap items-end gap-3 bg-slate-900 p-3 rounded-lg border border-slate-800">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">De</label>
-            <input type="date" name="from" defaultValue={fromParam || ''} className="border rounded px-2 py-1 text-sm" />
+            <label className="block text-xs text-slate-400 mb-1">De</label>
+            <Input type="date" name="from" defaultValue={fromParam || ''} className="w-auto" />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Até</label>
-            <input type="date" name="to" defaultValue={toParam || ''} className="border rounded px-2 py-1 text-sm" />
+            <label className="block text-xs text-slate-400 mb-1">Até</label>
+            <Input type="date" name="to" defaultValue={toParam || ''} className="w-auto" />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Competição</label>
-            <select name="comp" defaultValue={compParam || ''} className="border rounded px-2 py-1 text-sm min-w-[220px]">
+            <label className="block text-xs text-slate-400 mb-1">Competição</label>
+            <Select name="comp" defaultValue={compParam || ''} className="min-w-[220px]">
               <option value="">Todas</option>
               <option value="none">Sem competição</option>
               {competitions.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
-          <button type="submit" className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">Aplicar</button>
+          <button type="submit" className="px-3 py-1.5 rounded bg-emerald-600 text-white text-sm">Aplicar</button>
           {(fromParam || toParam) && (
-            <a href="/dashboard/stats" className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-sm">Limpar</a>
+            <a href="/dashboard/stats" className="px-3 py-1.5 rounded bg-slate-800 text-slate-200 text-sm border border-slate-700">Limpar</a>
           )}
         </form>
       </div>
 
       {/* Métricas por Vídeo (destaque no topo) */}
-      <Card className="mb-8 border border-slate-200 shadow-sm">
+      <Card className="mb-8 border border-slate-800 bg-slate-900 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Métricas por Vídeo</h3>
+            <h3 className="text-lg font-semibold text-slate-100">Métricas por Vídeo</h3>
             {(fromParam || toParam) && (
-              <span className="text-xs text-gray-500">Período: {fromParam || 'início'} → {toParam || 'agora'}</span>
+              <span className="text-xs text-slate-400">Período: {fromParam || 'início'} → {toParam || 'agora'}</span>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left py-2 px-2">Rede</th>
-                  <th className="text-left py-2 px-2">URL</th>
-                  <th className="text-right py-2 px-2">Views (última)</th>
-                  <th className="text-left py-2 px-2">Hashtags</th>
-                  <th className="text-left py-2 px-2">Menções</th>
-                  <th className="text-left py-2 px-2">
-                    Última coleta
-                    <span className="ml-1 text-xs text-gray-500" title="Data/hora da última coleta de métricas deste vídeo efetuada pelo admin">(?)</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {([...filteredVideos]
-                  .sort((a, b) => {
-                    const ma = latestByUrl.get(a.url);
-                    const va = typeof ma?.views === 'number' ? ma.views : a.views || 0;
-                    const mb = latestByUrl.get(b.url);
-                    const vb = typeof mb?.views === 'number' ? mb.views : b.views || 0;
-                    return vb - va; // desc
-                  })
-                ).map((v) => {
-                  const m = latestByUrl.get(v.url);
-                  const views = typeof m?.views === 'number' ? m.views : v.views;
-                  return (
-                    <tr key={v.id} className="border-b border-gray-100 align-top">
-                      <td className="py-2 px-2 font-medium text-gray-700">
-                        <span className="inline-flex items-center">
-                          <SocialIcon platform={v.socialMedia as any} className="h-4 w-4 mr-2" />
-                          <span className="uppercase text-xs text-gray-600">{v.socialMedia}</span>
-                        </span>
-                      </td>
-                      <td className="py-2 px-2 max-w-[420px]">
-                        <a href={v.url} className="text-blue-600 underline block truncate" title={v.url} target="_blank" rel="noreferrer">{v.url}</a>
-                      </td>
-                      <td className="py-2 px-2 text-right">{typeof views === 'number' ? views.toLocaleString() : '-'}</td>
-                      <td className="py-2 px-2">
-                        {(m?.hashtags || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700">{t}</span>)}</div>
-                        ) : <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-2 px-2">
-                        {(m?.mentions || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700">{t}</span>)}</div>
-                        ) : <span className="text-gray-400">-</span>}
-                      </td>
-                      <td className="py-2 px-2">{m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {filteredVideos.length === 0 && (
-              <div className="text-center py-8 text-sm text-gray-500">Sem vídeos para o período selecionado.</div>
-            )}
+          {/* Alternativa: cards responsivos em vez de tabela */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {([...filteredVideos]
+              .sort((a, b) => {
+                const ma = latestByUrl.get(a.url);
+                const va = typeof ma?.views === 'number' ? ma.views : a.views || 0;
+                const mb = latestByUrl.get(b.url);
+                const vb = typeof mb?.views === 'number' ? mb.views : b.views || 0;
+                return vb - va;
+              })
+            ).map((v) => {
+              const m = latestByUrl.get(v.url);
+              const views = typeof m?.views === 'number' ? m.views : v.views;
+              return (
+                <div key={v.id} className="rounded-lg border border-slate-800 bg-slate-950 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center text-slate-200">
+                      <SocialIcon platform={v.socialMedia as any} className="h-4 w-4 mr-2" />
+                      <span className="uppercase text-xs text-slate-400">{v.socialMedia}</span>
+                    </div>
+                    <span className="text-xs text-slate-400">{m?.collected_at ? new Date(m.collected_at).toLocaleDateString('pt-BR') : '-'}</span>
+                  </div>
+                  <a href={v.url} className="text-emerald-400 underline block truncate mb-2" title={v.url} target="_blank" rel="noreferrer">{v.url}</a>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-400">Views (última)</div>
+                      <div className="text-lg font-semibold text-slate-100">{typeof views === 'number' ? views.toLocaleString('pt-BR') : '-'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-400">Status</div>
+                      <div className="text-sm font-medium text-slate-200">{v.status}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    {(m?.hashtags || []).length ? (
+                      <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
+                    ) : <span className="text-xs text-slate-500">Sem hashtags</span>}
+                  </div>
+                  <div className="mt-2">
+                    {(m?.mentions || []).length ? (
+                      <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
+                    ) : <span className="text-xs text-slate-500">Sem menções</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {filteredVideos.length === 0 && (
+            <div className="text-center py-8 text-sm text-slate-500">Sem vídeos para o período selecionado.</div>
+          )}
         </CardContent>
       </Card>
 
