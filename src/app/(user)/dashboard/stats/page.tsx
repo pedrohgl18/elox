@@ -10,6 +10,7 @@ import { formatCurrencyBRL } from '@/lib/format';
 import { BarChart } from '@/components/charts/BarChart';
 import { BarChart3, Calendar, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lucide-react';
 import { Video as VideoType, Payment } from '@/lib/types';
+import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 
 export default async function StatsPage() {
   const session: any = await getServerSession(authOptions as any);
@@ -35,7 +36,28 @@ export default async function StatsPage() {
   const totalEarnings = payments
     .filter((p: Payment) => p.status !== 'FAILED')
     .reduce((acc: number, p: Payment) => acc + p.amount, 0);
-  const totalViews = videos.reduce((acc: number, v: VideoType) => acc + v.views, 0);
+  // Últimas métricas do Supabase por URL
+  const supa = getSupabaseServiceClient();
+  const latestByUrl = new Map<string, { views: number | null; hashtags?: string[]; mentions?: string[]; collected_at?: string }>();
+  if (supa && videos.length > 0) {
+    const urls = videos.map((v) => v.url);
+    const { data: metrics } = await supa
+      .from('video_metrics')
+      .select('url,views,hashtags,mentions,collected_at')
+      .in('url', urls)
+      .order('collected_at', { ascending: false });
+    if (Array.isArray(metrics)) {
+      for (const m of metrics as any[]) {
+        if (!latestByUrl.has(m.url)) latestByUrl.set(m.url, { views: m.views ?? null, hashtags: m.hashtags || [], mentions: m.mentions || [], collected_at: m.collected_at });
+      }
+    }
+  }
+
+  const totalViews = videos.reduce((acc: number, v: VideoType) => {
+    const m = latestByUrl.get(v.url);
+    const views = typeof m?.views === 'number' ? m.views : v.views;
+    return acc + (views || 0);
+  }, 0);
   const approvedVideos = videos.filter((v: VideoType) => v.status === 'APPROVED').length;
   const pendingVideos = videos.filter((v: VideoType) => v.status === 'PENDING').length;
   const rejectedVideos = videos.filter((v: VideoType) => v.status === 'REJECTED').length;
@@ -266,6 +288,58 @@ export default async function StatsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Métricas por Vídeo (última coleta) */}
+      <Card className="mt-8">
+        <CardHeader>
+          <h3 className="text-lg font-semibold">Métricas por Vídeo (última coleta)</h3>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2">Rede</th>
+                  <th className="text-left py-2 px-2">URL</th>
+                  <th className="text-right py-2 px-2">Views</th>
+                  <th className="text-left py-2 px-2">Hashtags</th>
+                  <th className="text-left py-2 px-2">Menções</th>
+                  <th className="text-left py-2 px-2">Coletado em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {videos.map((v) => {
+                  const m = latestByUrl.get(v.url);
+                  const views = typeof m?.views === 'number' ? m.views : v.views;
+                  return (
+                    <tr key={v.id} className="border-b border-gray-100 align-top">
+                      <td className="py-2 px-2 font-medium uppercase text-gray-700">{v.socialMedia}</td>
+                      <td className="py-2 px-2 max-w-[340px]">
+                        <a href={v.url} className="text-brand-600 underline break-all" target="_blank" rel="noreferrer">{v.url}</a>
+                      </td>
+                      <td className="py-2 px-2 text-right">{typeof views === 'number' ? views.toLocaleString() : '-'}</td>
+                      <td className="py-2 px-2">
+                        {(m?.hashtags || []).length ? (
+                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50">{t}</span>)}</div>
+                        ) : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-2 px-2">
+                        {(m?.mentions || []).length ? (
+                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50">{t}</span>)}</div>
+                        ) : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="py-2 px-2">{m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {videos.length === 0 && (
+              <div className="text-center py-8 text-sm text-gray-500">Você ainda não enviou vídeos.</div>
+            )}
           </div>
         </CardContent>
       </Card>

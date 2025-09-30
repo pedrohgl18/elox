@@ -191,14 +191,14 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} disabled={running !== 'idle'}>
             Limpar seleção
           </Button>
-          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0}>
-            Coletar métricas (selecionados)
+          <Button size="sm" onClick={collectSelected} disabled={running !== 'idle' || selectedRows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0} title="Coletar métricas dos selecionados">
+            Coletar (sel.)
           </Button>
-          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0}>
-            Coletar métricas (página)
+          <Button size="sm" onClick={collectPage} disabled={running !== 'idle' || rows.filter(r => r.socialMedia === 'instagram' || r.socialMedia === 'youtube').length === 0} title="Coletar métricas de todos desta página">
+            Coletar (pág.)
           </Button>
-          <Button size="sm" variant="outline" onClick={exportCSV} disabled={running !== 'idle' || rows.length === 0}>
-            Exportar CSV {selected.size ? '(selecionados)' : '(página)'}
+          <Button size="sm" variant="outline" onClick={exportCSV} disabled={running !== 'idle' || rows.length === 0} title="Exportar CSV da página ou dos selecionados">
+            CSV {selected.size ? '(sel.)' : '(pág.)'}
           </Button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                   aria-label="Selecionar todos"
                 />
               </th>
-              {['Clipador','Rede','URL','Views (última)','Coletado em','Enviado em','Validado em','Status','Ações'].map((h) => (
+              {['Clipador','Rede','URL','Views (última)','Hashtags','Menções','Coletado em','Enviado em','Validado em','Status','Ações'].map((h) => (
                 <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
               ))}
             </tr>
@@ -244,6 +244,30 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                   <a href={r.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{r.url}</a>
                 </td>
                 <td className="px-3 sm:px-4 py-2 text-slate-200 whitespace-nowrap align-top">{typeof r.latest?.views === 'number' ? r.latest.views.toLocaleString('pt-BR') : '-'}</td>
+                <td className="px-3 sm:px-4 py-2 align-top">
+                  {(r.latest?.hashtags || []).length ? (
+                    <div className="flex flex-wrap gap-1 max-w-[260px]">
+                      {(r.latest!.hashtags || []).slice(0,5).map((t, i) => (
+                        <span key={i} className="text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>
+                      ))}
+                      {(r.latest!.hashtags || []).length > 5 && (
+                        <span className="text-[11px] text-slate-500">+{(r.latest!.hashtags || []).length - 5}</span>
+                      )}
+                    </div>
+                  ) : <span className="text-slate-500">-</span>}
+                </td>
+                <td className="px-3 sm:px-4 py-2 align-top">
+                  {(r.latest?.mentions || []).length ? (
+                    <div className="flex flex-wrap gap-1 max-w-[260px]">
+                      {(r.latest!.mentions || []).slice(0,5).map((t, i) => (
+                        <span key={i} className="text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>
+                      ))}
+                      {(r.latest!.mentions || []).length > 5 && (
+                        <span className="text-[11px] text-slate-500">+{(r.latest!.mentions || []).length - 5}</span>
+                      )}
+                    </div>
+                  ) : <span className="text-slate-500">-</span>}
+                </td>
                 <td className="px-3 sm:px-4 py-2 text-slate-400 whitespace-nowrap align-top">{r.latest?.collected_at ? new Date(r.latest.collected_at).toLocaleString('pt-BR') : '-'}</td>
                 <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap align-top">{new Date(r.submittedAt).toLocaleString('pt-BR')}</td>
                 <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap align-top">{r.validatedAt ? new Date(r.validatedAt).toLocaleString('pt-BR') : '-'}</td>

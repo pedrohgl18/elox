@@ -169,3 +169,12 @@ Consistência Acima de Tudo: O código que você escreve deve parecer que foi es
 Não Reinvente a Roda: Utilize os componentes de UI e funções utilitárias existentes sempre que possível. Verifique /components/ui e /lib antes de criar algo novo.
 
 Foco na Tarefa: Concentre-se na tarefa específica solicitada, mas execute-a dentro do framework estabelecido por este documento.
+
+8) Política de SQL (Banco de Dados)
+Todo o schema do Supabase (tabelas, constraints, índices, RLS, funções e seeds) DEVE residir em um único arquivo: `scripts/supabase-full.sql`.
+
+- Não criar múltiplos arquivos .sql paralelos no repositório.
+- Qualquer mudança de banco deve ser idempotente e incluída no próprio `supabase-full.sql` (com comentários claros e blocos DO/BEGIN/EXCEPTION ou verificações via catálogos quando necessário).
+- Se for imprescindível uma migração manual temporária, após aplicada, ela deve ser incorporada ao `supabase-full.sql` e o arquivo temporário removido.
+
+Motivação: manter uma fonte única e organizada do schema evita divergências entre ambientes e reduz atrito operacional.

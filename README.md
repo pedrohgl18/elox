@@ -60,7 +60,7 @@ npm run dev
 ### Rotas de API disponíveis (iniciais)
 
 - `GET /api/videos` — lista vídeos do usuário (ou todos, se admin)
-- `POST /api/videos` — cria vídeo pendente `{ url, socialMedia: 'tiktok'|'instagram'|'kwai' }`
+- `POST /api/videos` — cria vídeo pendente `{ url, socialMedia: 'tiktok'|'instagram'|'kwai'|'youtube' }`
 - `GET /api/videos/:id` — detalha vídeo (autorização por owner/admin)
 - `PATCH /api/videos/:id` — admin aprova/rejeita `{ action: 'approve' | 'reject' }`
 - `GET /api/payments` — lista pagamentos do usuário (ou todos, se admin)
@@ -86,7 +86,7 @@ Observação: Como esse processo usa scraping do HTML público do Instagram, ele
 ### Rotas de API relevantes
 
 - `GET /api/competitions/enrolled-active` — lista competições ativas em que o usuário está inscrito.
-- `POST /api/videos` — cria o vídeo. Se `socialMedia==='instagram'`, o servidor chama o coletor público para obter views/hashtags/menções automaticamente.
+- `POST /api/videos` — cria o vídeo. Se `socialMedia==='instagram'`, o servidor chama o coletor público para obter views/hashtags/menções automaticamente. Se `socialMedia==='youtube'`, o servidor usa a YouTube Data API v3 para buscar estatísticas públicas (ex.: views) e extrair hashtags/menções da descrição.
 - `POST /api/public/instagram/reel-insights` — utilitário público para testar a coleta de métricas a partir de uma URL de Reel.
 
 ### Teste rápido (sem login social)
@@ -96,3 +96,7 @@ Observação: Como esse processo usa scraping do HTML público do Instagram, ele
 3. Clique em Buscar para ver o shortcode, views (se disponível), hashtags e menções detectadas.
 
 Na página "Enviar Vídeos", colar a mesma URL criará o envio e persistirá essas informações, exibindo-as depois no dashboard.
+
+## Variáveis de Ambiente (Netlify)
+
+- Configure `YOUTUBE_API_KEY` no Netlify (Site Settings > Build & deploy > Environment) para habilitar a coleta via YouTube Data API v3. Para desenvolvimento local, você pode definir em `.env.local`.

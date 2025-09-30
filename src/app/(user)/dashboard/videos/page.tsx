@@ -8,12 +8,8 @@ import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { Button } from '@/components/ui/Button';
 import { SubmitVideoForm } from '@/components/user/SubmitVideoForm';
-import { DataTable } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { formatCurrencyBRL } from '@/lib/format';
-import { Video } from '@/lib/types';
-import { Plus, Video as VideoIcon, Eye, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Alert } from '@/components/ui/Alert';
+import { Plus } from 'lucide-react';
 import { headers } from 'next/headers';
 
 export default async function VideosPage() {
@@ -37,54 +33,15 @@ export default async function VideosPage() {
     redirect(config.urls.login);
   }
   
-  const videos: Video[] = await db.video.listForUser(user);
+  const videos = await db.video.listForUser(user);
 
   // Notificação simples via querystring (?notice=approved|rejected)
   const h = headers();
   const notice = h.get('x-next-url')?.includes('notice=approved') ? 'approved' : (h.get('x-next-url')?.includes('notice=rejected') ? 'rejected' : null);
   
-  // Estatísticas dos vídeos
-  const totalVideos = videos.length;
-  const approvedVideos = videos.filter((v: Video) => v.status === 'APPROVED').length;
-  const totalViews = videos.reduce((acc: number, v: Video) => acc + v.views, 0);
-  const totalEarnings = videos.reduce((acc: number, v: Video) => acc + v.earnings, 0);
+  // Estatísticas removidas desta página (migradas para /dashboard/stats)
 
-  // Colunas da tabela de vídeos
-  const tableRows = videos.map((v: Video) => ({
-    url: (
-      <a href={v.url} className="text-brand-400 underline text-sm" target="_blank" rel="noreferrer">
-        Ver Vídeo
-      </a>
-    ),
-    rede: (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-200">
-        {v.socialMedia.toUpperCase()}
-      </span>
-    ),
-    views: (
-      <div className="flex items-center space-x-1">
-        <Eye className="h-4 w-4 text-slate-400" />
-        <span className="font-medium">{v.views.toLocaleString('pt-BR')}</span>
-      </div>
-    ),
-    ganho: (
-      <div className="flex items-center space-x-1 text-green-400 font-medium">
-        <DollarSign className="h-4 w-4" />
-        <span>{formatCurrencyBRL(v.earnings)}</span>
-      </div>
-    ),
-    status: <StatusBadge label={v.status} />,
-    enviado: new Date(v.submittedAt).toLocaleDateString('pt-BR'),
-  }));
-
-  const videoColumns = [
-    { key: 'url', label: 'URL' },
-    { key: 'rede', label: 'Rede Social' },
-    { key: 'views', label: 'Views' },
-    { key: 'ganho', label: 'Ganho' },
-    { key: 'status', label: 'Status' },
-    { key: 'enviado', label: 'Enviado em' },
-  ];
+  // Tabela de histórico removida desta página
 
   return (
     <UserLayout username={user.username} email={user.email}>
@@ -109,62 +66,7 @@ export default async function VideosPage() {
         </div>
       )}
 
-      {/* Estatísticas */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <span className="text-sm font-medium text-slate-300">Total de Vídeos</span>
-            <VideoIcon className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalVideos}</div>
-            <p className="text-xs text-slate-400">
-              {approvedVideos} aprovados
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <span className="text-sm font-medium text-slate-300">Total de Views</span>
-            <Eye className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalViews.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-slate-400">
-              Média: {totalVideos > 0 ? Math.round(totalViews / totalVideos).toLocaleString('pt-BR') : 0} por vídeo
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <span className="text-sm font-medium text-slate-300">Ganhos Totais</span>
-            <DollarSign className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrencyBRL(totalEarnings)}</div>
-            <p className="text-xs text-slate-400">
-              Média: {formatCurrencyBRL(totalVideos > 0 ? totalEarnings / totalVideos : 0)} por vídeo
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <span className="text-sm font-medium text-slate-300">Taxa de Aprovação</span>
-            <div className="h-4 w-4 rounded-full bg-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalVideos > 0 ? Math.round((approvedVideos / totalVideos) * 100) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {approvedVideos} de {totalVideos} vídeos
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Estatísticas removidas desta página (ir para /dashboard/stats) */}
 
       {/* Formulário de Envio Rápido */}
       <Card className="mb-8">
@@ -177,28 +79,7 @@ export default async function VideosPage() {
         </CardContent>
       </Card>
 
-      {/* Tabela de Vídeos */}
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-slate-100">Histórico de Vídeos</h3>
-          <p className="text-sm text-slate-400">Todos os seus vídeos enviados e seu status</p>
-        </CardHeader>
-        <CardContent>
-          {videos.length > 0 ? (
-            <DataTable data={tableRows} columns={videoColumns} />
-          ) : (
-            <div className="text-center py-12">
-              <VideoIcon className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-100 mb-2">Nenhum vídeo enviado ainda</h3>
-              <p className="text-slate-400 mb-4">Comece enviando seu primeiro vídeo para começar a ganhar!</p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Enviar Primeiro Vídeo
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Histórico removido: acesse suas métricas e histórico em /dashboard/stats */}
     </UserLayout>
   );
 }

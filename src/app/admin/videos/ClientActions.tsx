@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/Button';
+import { RefreshCw, List as ListIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 
@@ -69,10 +70,22 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
 
   return (
     <div className="flex gap-2">
-      <Button size="sm" variant="outline" onClick={collect} disabled={loading}>
-        {loading ? 'Coletando…' : `Coletar métricas (${platform === 'instagram' ? 'Apify' : 'YouTube'})`}
+      <Button size="sm" variant="outline" onClick={collect} disabled={loading} title="Coletar métricas">
+        {loading ? (
+          'Coletando…'
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Coletar</span>
+          </span>
+        )}
       </Button>
-  <Button size="sm" variant="outline" onClick={openDetails}>Detalhes</Button>
+      <Button size="sm" variant="outline" onClick={openDetails} title="Ver histórico de coletas">
+        <span className="inline-flex items-center gap-1">
+          <ListIcon className="h-3.5 w-3.5" />
+          <span>Histórico</span>
+        </span>
+      </Button>
       <Modal open={open} onClose={() => setOpen(false)}>
         <div className="space-y-4 text-slate-200">
           <div className="text-lg font-semibold">Histórico de coletas</div>

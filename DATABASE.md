@@ -1,6 +1,6 @@
 # Banco de Dados EloX (Supabase)
 
-Este documento descreve como configurar o banco de dados no **Supabase (interface web)**. Nenhum comando CLI ou local deve ser usado, alinhado ao requisito de usar exclusivamente o painel online.
+Este documento descreve como configurar e manter o banco de dados no **Supabase (interface web)**. Nenhum comando CLI ou local deve ser usado. A fonte única de verdade do schema está no arquivo `scripts/supabase-full.sql` (idempotente), conforme política definida em `agents.md`.
 
 ## Visão Geral
 
@@ -25,16 +25,13 @@ Campos:
 Índices:
 - UNIQUE(email)
 - UNIQUE(username)
- social_media: text CHECK (social_media IN ('tiktok','instagram','kwai','youtube'))
+
 
 ### 2. videos
 
- allowed_platforms: text[] DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[]
-
 - id: uuid PK DEFAULT gen_random_uuid()
 - clipador_id: uuid REFERENCES profiles(id) ON DELETE CASCADE
- Implementar adapter (videos, competitions, payments, profiles)
-- social_media: text CHECK (social_media IN ('tiktok','instagram','kwai'))
+- social_media: text CHECK (social_media IN ('tiktok','instagram','kwai','youtube'))
 - earnings: numeric(12,2) DEFAULT 0
 - status: text CHECK (status IN ('PENDING','APPROVED','REJECTED')) DEFAULT 'PENDING'
 - submitted_at: timestamptz DEFAULT now()
@@ -43,8 +40,8 @@ Campos:
 - BTREE(status)
 
 
+
 ### 3. payments
-  social_media text CHECK (social_media IN ('tiktok','instagram','kwai','youtube')),
 
 - id: uuid PK DEFAULT gen_random_uuid()
 - clipador_id: uuid REFERENCES profiles(id) ON DELETE CASCADE
@@ -107,7 +104,7 @@ Campos:
 2. Crie cada tabela com scripts separados (cole e execute) — você pode agrupar mas mantenha ordem por dependências.
 3. Utilize a extensão `pgcrypto` (ativa por padrão) para `gen_random_uuid()` se ainda não estiver ativa.
 
-Exemplo (cole no editor web):
+Exemplo (cole no editor web). Recomenda-se usar o conteúdo de `scripts/supabase-full.sql` para garantir consistência entre ambientes:
 
 ```sql
 -- profiles
@@ -128,7 +125,7 @@ CREATE TABLE IF NOT EXISTS public.videos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clipador_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
   url text NOT NULL,
-  social_media text CHECK (social_media IN ('tiktok','instagram','kwai')),
+  social_media text CHECK (social_media IN ('tiktok','instagram','kwai','youtube')),
   views bigint DEFAULT 0,
   earnings numeric(12,2) DEFAULT 0,
   status text CHECK (status IN ('PENDING','APPROVED','REJECTED')) DEFAULT 'PENDING',
@@ -157,7 +154,7 @@ CREATE TABLE IF NOT EXISTS public.competitions (
   is_active boolean DEFAULT true,
   status text CHECK (status IN ('SCHEDULED','ACTIVE','COMPLETED')),
   cpm numeric(10,2) DEFAULT 0,
-  allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai']::text[],
+  allowed_platforms text[] DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[],
   created_at timestamptz DEFAULT now()
 );
 
@@ -207,6 +204,7 @@ Configurar em Site Settings > Build & Deploy > Environment:
 - SUPABASE_URL
 - SUPABASE_ANON_KEY
 - SUPABASE_SERVICE_ROLE_KEY (somente se necessário em server actions; não expor no client)
+- YOUTUBE_API_KEY (YouTube Data API v3 para coleta de métricas públicas)
 
 ## Migração Gradual
 

@@ -143,6 +143,36 @@ CREATE INDEX IF NOT EXISTS video_metrics_platform_short_url ON public.video_metr
 CREATE INDEX IF NOT EXISTS video_metrics_collected_at ON public.video_metrics(collected_at DESC);
 ALTER TABLE public.video_metrics ENABLE ROW LEVEL SECURITY;
 
+-- 1.10) Migrações idempotentes embutidas (para bancos já existentes)
+-- (a) Garantir CHECK de social_media incluindo 'youtube' em public.videos
+DO $$
+DECLARE
+  v_constraint_name text;
+BEGIN
+  SELECT conname INTO v_constraint_name
+  FROM pg_constraint c
+  JOIN pg_class t ON c.conrelid = t.oid
+  JOIN pg_namespace n ON n.oid = t.relnamespace
+  WHERE n.nspname = 'public' AND t.relname = 'videos' AND c.contype = 'c'
+    AND pg_get_constraintdef(c.oid) ILIKE '%social_media%';
+  IF v_constraint_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.videos DROP CONSTRAINT %I', v_constraint_name);
+  END IF;
+  EXECUTE 'ALTER TABLE public.videos '
+       || 'ADD CONSTRAINT videos_social_media_check '
+       || 'CHECK (social_media IN (''tiktok'',''instagram'',''kwai'',''youtube''))';
+END $$;
+
+-- (b) Ajustar default de competitions.allowed_platforms para incluir 'youtube'
+ALTER TABLE public.competitions
+  ALTER COLUMN allowed_platforms SET DEFAULT ARRAY['tiktok','instagram','kwai','youtube']::text[];
+
+-- (c) Backfill simples do allowed_platforms quando nulo ou com lista antiga
+UPDATE public.competitions
+  SET allowed_platforms = ARRAY['tiktok','instagram','kwai','youtube']::text[]
+  WHERE allowed_platforms IS NULL
+     OR allowed_platforms = ARRAY['tiktok','instagram','kwai']::text[];
+
 -- 2) Funções utilitárias
 CREATE OR REPLACE FUNCTION public.search_username_ci(search_value text)
 RETURNS SETOF public.profiles AS $$
