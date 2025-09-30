@@ -69,10 +69,25 @@ export async function POST(req: Request) {
     const v = await db.video.create(authUser, validation.url, body.socialMedia, competitionId, meta);
     return NextResponse.json(v, { status: 201 });
   } catch (err: any) {
-    const msg = (err?.message || '').toLowerCase();
+    const rawMsg = String(err?.message || '');
+    const msg = rawMsg.toLowerCase();
     const code = err?.code || err?.status || '';
     if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
       return NextResponse.json({ error: 'Este vídeo já foi enviado.' }, { status: 409 });
+    }
+    // Check constraint para plataforma (quando a coluna social_media não aceita 'youtube')
+    if (code === '23514' || msg.includes('violates check constraint') || msg.includes('social_media')) {
+      return NextResponse.json({
+        error: 'A plataforma selecionada não está habilitada no banco de dados. Peça ao administrador para atualizar o schema para aceitar YouTube.',
+        hint: 'Atualize a tabela public.videos para incluir youtube no CHECK (social_media).',
+      }, { status: 400 });
+    }
+    // Foreign key: usuário não existe na tabela profiles
+    if (msg.includes('violates foreign key constraint') || msg.includes('clipador_id')) {
+      return NextResponse.json({
+        error: 'Conta não reconhecida no banco para salvar o vídeo. Refaça o login ou contate o administrador.',
+        hint: 'Verifique se o usuário existe em public.profiles e se o id do token corresponde ao id na tabela.',
+      }, { status: 400 });
     }
     return NextResponse.json({ error: 'Falha ao salvar o vídeo. Tente novamente em instantes.' }, { status: 500 });
   }

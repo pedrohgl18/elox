@@ -429,12 +429,15 @@ export function createSupabaseAdapter() {
       create: async (user: AuthUserRecord, url: string, social: Video['socialMedia'], competitionId?: string | null) => {
         const insert: any = { clipador_id: user.id, url, social_media: social };
         if (competitionId) insert.competition_id = competitionId;
-        const { data, error } = await supabase.from('videos').insert(insert).select('*').single();
+        // Usa service role quando disponível para evitar RLS bloquear a inserção server-side
+        const cli = getSupabaseServiceClient() || supabase;
+        const { data, error } = await cli.from('videos').insert(insert).select('*').single();
         if (error || !data) throw error;
         return mapVideo(data as VideoRow);
       },
       approve: async (id: string) => {
-        const { data, error } = await supabase
+        const cli = getSupabaseServiceClient() || supabase;
+        const { data, error } = await cli
           .from('videos')
           .update({ status: 'APPROVED', validated_at: new Date().toISOString() })
           .eq('id', id)
@@ -444,7 +447,7 @@ export function createSupabaseAdapter() {
         // Cria notificação para o dono do vídeo
         try {
           const row = data as VideoRow;
-          await svc.from('notifications').insert({
+          await (getSupabaseServiceClient() || supabase).from('notifications').insert({
             user_id: row.clipador_id,
             type: 'video_approved',
             title: 'Vídeo aprovado',
@@ -454,7 +457,8 @@ export function createSupabaseAdapter() {
         return mapVideo(data as VideoRow);
       },
       reject: async (id: string) => {
-        const { data, error } = await supabase
+        const cli = getSupabaseServiceClient() || supabase;
+        const { data, error } = await cli
           .from('videos')
           .update({ status: 'REJECTED', validated_at: new Date().toISOString() })
           .eq('id', id)
@@ -464,7 +468,7 @@ export function createSupabaseAdapter() {
         // Cria notificação para o dono do vídeo
         try {
           const row = data as VideoRow;
-          await svc.from('notifications').insert({
+          await (getSupabaseServiceClient() || supabase).from('notifications').insert({
             user_id: row.clipador_id,
             type: 'video_rejected',
             title: 'Vídeo rejeitado',
