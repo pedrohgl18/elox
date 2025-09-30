@@ -66,9 +66,10 @@ export default async function StatsPage() {
   const tiktokVideos = videos.filter((v: VideoType) => v.socialMedia === 'tiktok');
   const instagramVideos = videos.filter((v: VideoType) => v.socialMedia === 'instagram');
   const kwaiVideos = videos.filter((v: VideoType) => v.socialMedia === 'kwai');
+  const youtubeVideos = videos.filter((v: VideoType) => v.socialMedia === 'youtube');
 
-  const chartLabels = ['TikTok', 'Instagram', 'Kwai'];
-  const chartValues = [tiktokVideos.length, instagramVideos.length, kwaiVideos.length];
+  const chartLabels = ['TikTok', 'Instagram', 'Kwai', 'YouTube'];
+  const chartValues = [tiktokVideos.length, instagramVideos.length, kwaiVideos.length, youtubeVideos.length];
 
   // Estatísticas de performance
   const avgViewsPerVideo = videos.length > 0 ? Math.round(totalViews / videos.length) : 0;
@@ -173,6 +174,10 @@ export default async function StatsPage() {
                 <span>Kwai:</span>
                 <span className="font-medium">{kwaiVideos.length} vídeos</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span>YouTube:</span>
+                <span className="font-medium">{youtubeVideos.length} vídeos</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -184,28 +189,28 @@ export default async function StatsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
                 <div className="flex items-center space-x-3">
                   <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="font-medium">Aprovados</span>
+                  <span className="font-medium text-slate-200">Aprovados</span>
                 </div>
-                <span className="text-2xl font-bold text-green-600">{approvedVideos}</span>
+                <span className="text-2xl font-bold text-green-400">{approvedVideos}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
                 <div className="flex items-center space-x-3">
                   <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                  <span className="font-medium">Pendentes</span>
+                  <span className="font-medium text-slate-200">Pendentes</span>
                 </div>
-                <span className="text-2xl font-bold text-yellow-600">{pendingVideos}</span>
+                <span className="text-2xl font-bold text-yellow-400">{pendingVideos}</span>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
                 <div className="flex items-center space-x-3">
                   <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <span className="font-medium">Rejeitados</span>
+                  <span className="font-medium text-slate-200">Rejeitados</span>
                 </div>
-                <span className="text-2xl font-bold text-red-600">{rejectedVideos}</span>
+                <span className="text-2xl font-bold text-red-400">{rejectedVideos}</span>
               </div>
             </div>
           </CardContent>
@@ -323,12 +328,12 @@ export default async function StatsPage() {
                       <td className="py-2 px-2 text-right">{typeof views === 'number' ? views.toLocaleString() : '-'}</td>
                       <td className="py-2 px-2">
                         {(m?.hashtags || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50">{t}</span>)}</div>
+                          <div className="flex flex-wrap gap-1">{(m?.hashtags || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
                         ) : <span className="text-gray-400">-</span>}
                       </td>
                       <td className="py-2 px-2">
                         {(m?.mentions || []).length ? (
-                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50">{t}</span>)}</div>
+                          <div className="flex flex-wrap gap-1">{(m?.mentions || []).slice(0,5).map((t, i) => <span key={i} className="text-xs px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-200">{t}</span>)}</div>
                         ) : <span className="text-gray-400">-</span>}
                       </td>
                       <td className="py-2 px-2">{m?.collected_at ? new Date(m.collected_at).toLocaleString('pt-BR') : '-'}</td>

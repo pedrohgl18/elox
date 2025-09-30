@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import ClientActions from './ClientActions';
 
@@ -216,8 +217,13 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                   aria-label="Selecionar todos"
                 />
               </th>
-              {['Clipador','Rede','URL','Views (última)','Hashtags','Menções','Coletado em','Enviado em','Validado em','Status','Ações'].map((h) => (
-                <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">{h}</th>
+              {['Clipador','Rede','URL','Views (última)','Hashtags','Menções','Última coleta','Enviado em','Validado em','Status','Ações'].map((h) => (
+                <th key={h} className="px-3 sm:px-4 py-2.5 sm:py-3 text-left font-semibold text-slate-200">
+                  {h}
+                  {h === 'Última coleta' && (
+                    <span className="ml-1 text-xs text-slate-400" title="Data/hora da última coleta de métricas deste vídeo efetuada pelo admin">(?)</span>
+                  )}
+                </th>
               ))}
             </tr>
           </thead>
@@ -239,9 +245,16 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
                     <span className="text-xs text-slate-400">{r.clipadorEmail}</span>
                   </div>
                 </td>
-                <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap align-top">{r.socialMedia.toUpperCase()}</td>
-                <td className="px-3 sm:px-4 py-2 break-words max-w-[260px] sm:max-w-none align-top">
-                  <a href={r.url} target="_blank" rel="noreferrer" className="text-brand-400 underline break-all">{r.url}</a>
+                <td className="px-3 sm:px-4 py-2 text-slate-300 whitespace-nowrap align-top">
+                  {/* Ícone colorido da rede social para identificação visual rápida */}
+                  <div className="inline-flex items-center">
+                    {/* Reaproveita SocialPicker: renderiza apenas o ícone */}
+                    {/* @ts-ignore: componente exportado com tipos locais */}
+                    <SocialIcon platform={r.socialMedia} />
+                  </div>
+                </td>
+                <td className="px-3 sm:px-4 py-2 align-top max-w-[340px] sm:max-w-[520px]">
+                  <a href={r.url} target="_blank" rel="noreferrer" className="text-brand-400 underline block truncate" title={r.url}>{r.url}</a>
                 </td>
                 <td className="px-3 sm:px-4 py-2 text-slate-200 whitespace-nowrap align-top">{typeof r.latest?.views === 'number' ? r.latest.views.toLocaleString('pt-BR') : '-'}</td>
                 <td className="px-3 sm:px-4 py-2 align-top">

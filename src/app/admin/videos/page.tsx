@@ -14,7 +14,7 @@ import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 import ClientActions from './ClientActions';
 import VideosTableClient, { VideoRow } from './VideosTableClient';
 
-export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string; compId?: string } }) {
+export default async function AdminVideosPage({ searchParams }: { searchParams?: { status?: string; social?: string; q?: string; page?: string; pageSize?: string; sort?: string; compId?: string; from?: string; to?: string } }) {
   const session: any = await getServerSession(authOptions as any);
   if (!session?.user) redirect(config.urls.login);
   if ((session.user as any).role !== 'admin') redirect(config.urls.userDashboard);
@@ -45,12 +45,16 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
   const statusFilter = (searchParams?.status || '').toUpperCase();
   const socialFilter = (searchParams?.social || '').toLowerCase();
   const q = (searchParams?.q || '').toLowerCase().trim();
+  const from = searchParams?.from ? new Date(searchParams.from) : null;
+  const to = searchParams?.to ? new Date(searchParams.to) : null;
   let filtered = items.filter(({ v, c }) => {
     const okStatus = statusFilter ? v.status === statusFilter : true;
     const okSocial = socialFilter ? v.socialMedia === socialFilter : true;
     const okSearch = q ? (c.username.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || v.clipadorId.toLowerCase().includes(q)) : true;
     const okComp = selectedCompId ? (v.competitionId === selectedCompId) : true;
-    return okStatus && okSocial && okSearch && okComp;
+    const okFrom = from ? v.submittedAt >= from : true;
+    const okTo = to ? v.submittedAt <= to : true;
+    return okStatus && okSocial && okSearch && okComp && okFrom && okTo;
   });
 
   // ordenação por mais recente (submittedAt desc) por padrão
@@ -140,6 +144,14 @@ export default async function AdminVideosPage({ searchParams }: { searchParams?:
               <div className="w-full sm:w-auto">
                 <label className="block text-xs text-slate-400 mb-1">Buscar (usuário/email)</label>
                 <Input name="q" placeholder="ex: clip_user ou user@" defaultValue={searchParams?.q || ''} />
+              </div>
+              <div className="w-full sm:w-auto">
+                <label className="block text-xs text-slate-400 mb-1">De</label>
+                <Input type="date" name="from" defaultValue={searchParams?.from || ''} />
+              </div>
+              <div className="w-full sm:w-auto">
+                <label className="block text-xs text-slate-400 mb-1">Até</label>
+                <Input type="date" name="to" defaultValue={searchParams?.to || ''} />
               </div>
               <input type="hidden" name="sort" value={searchParams?.sort || 'recent'} />
               <input type="hidden" name="page" value={String(currentPage)} />
