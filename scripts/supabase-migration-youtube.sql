@@ -19,11 +19,9 @@ BEGIN
     EXECUTE format('ALTER TABLE public.videos DROP CONSTRAINT %I', v_constraint_name);
   END IF;
 
-  EXECUTE $$
-    ALTER TABLE public.videos
-    ADD CONSTRAINT videos_social_media_check
-    CHECK (social_media IN ('tiktok','instagram','kwai','youtube'))
-  $$;
+  EXECUTE 'ALTER TABLE public.videos '
+       || 'ADD CONSTRAINT videos_social_media_check '
+       || 'CHECK (social_media IN (''tiktok'',''instagram'',''kwai'',''youtube''))';
 END $$;
 
 -- 2) Ajustar default do allowed_platforms em competitions para incluir 'youtube'
