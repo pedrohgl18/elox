@@ -22,6 +22,9 @@ export function AdminApiKeysForm() {
   const [ytTestUrl, setYtTestUrl] = React.useState('');
   const [ytTestLoading, setYtTestLoading] = React.useState(false);
   const [ytTestOutput, setYtTestOutput] = React.useState<any | null>(null);
+  const [ttTestUrl, setTtTestUrl] = React.useState('');
+  const [ttTestLoading, setTtTestLoading] = React.useState(false);
+  const [ttTestOutput, setTtTestOutput] = React.useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -122,6 +125,42 @@ export function AdminApiKeysForm() {
               setSuccess('Status atualizado.');
             } catch (e: any) { setError(e.message || 'Erro'); } finally { setLoading(false); }
           }}>Testar integração</Button>
+        </div>
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">TikTok (via Apify)</div>
+              <div className="text-xs text-slate-400">Usa APIFY_TOKEN e actor clockworks/tiktok-scraper (configurável).</div>
+            </div>
+            <div className={`text-xs px-2 py-1 rounded ${apifyConfigured ? 'bg-emerald-900 text-emerald-200' : 'bg-slate-800 text-slate-200'}`}>
+              {apifyConfigured ? 'Disponível' : 'Não configurado'}
+            </div>
+          </div>
+          <div className="text-sm font-medium">Teste de coleta (TikTok)</div>
+          <div className="text-xs text-slate-400">Informe a URL de um vídeo TikTok e execute um teste rápido. Isso cria um registro em video_metrics.</div>
+          <div className="flex gap-2">
+            <Input value={ttTestUrl} onChange={(e) => setTtTestUrl(e.currentTarget.value)} placeholder="https://www.tiktok.com/@user/video/XXXXXXXXX" />
+            <Button type="button" disabled={ttTestLoading || !ttTestUrl.trim()} onClick={async () => {
+              setTtTestLoading(true); setError(null); setSuccess(null); setTtTestOutput(null);
+              try {
+                const res = await fetch('/api/admin/tiktok-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ttTestUrl.trim() }) });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j?.error || 'Falha na coleta');
+                setTtTestOutput(j);
+                setSuccess('Coleta TikTok concluída.');
+              } catch (e: any) {
+                setTtTestOutput(e?.message ? { error: e.message } : null);
+                setError(e.message || 'Erro');
+              } finally {
+                setTtTestLoading(false);
+              }
+            }}>{ttTestLoading ? 'Coletando…' : 'Executar teste'}</Button>
+          </div>
+          {ttTestOutput && (
+            <div className="text-xs bg-slate-900/60 border border-slate-800 rounded p-3 overflow-x-auto">
+              <pre className="whitespace-pre-wrap break-words">{JSON.stringify(ttTestOutput, null, 2)}</pre>
+            </div>
+          )}
         </div>
         <div className="border-t border-slate-800 pt-4 space-y-3">
           <div className="text-sm font-medium">Teste de coleta (Apify)</div>
