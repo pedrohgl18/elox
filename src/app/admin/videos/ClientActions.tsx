@@ -20,7 +20,7 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
     try {
       const endpoint = platform === 'instagram'
         ? '/api/admin/instagram-collect'
-        : (platform === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
+        : (platform === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-start');
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -30,6 +30,23 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
       let j: any = null;
       try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
       if (!res.ok) throw new Error((j && j.error) || raw || 'Falha ao coletar');
+      if (platform === 'tiktok' && j?.runId) {
+        // Poll status até obter dados ou timeout curto no cliente
+        const started = Date.now();
+        const maxMs = 25000; // 25s lado cliente
+        const poll = async (): Promise<boolean> => {
+          const qs = new URLSearchParams({ runId: j.runId, url }).toString();
+          const r = await fetch(`/api/admin/tiktok-status?${qs}`);
+          const t = await r.text();
+          let tj: any = null; try { tj = t ? JSON.parse(t) : null; } catch {}
+          if (r.ok && tj && (tj.views !== undefined || tj.hashtags || tj.mentions)) return true;
+          if (Date.now() - started > maxMs) return false;
+          await new Promise((rr) => setTimeout(rr, 2000));
+          return poll();
+        };
+        const ok = await poll();
+        if (!ok) throw new Error('Coleta iniciada mas não finalizou a tempo. Tente novamente em alguns segundos.');
+      }
       if (j?.skipped && j?.reason === 'recent') {
         show(`Coleta ignorada (cooldown). Última: ${j?.latestAt ? new Date(j.latestAt).toLocaleString('pt-BR') : 'há pouco'}.`, { type: 'info' });
       } else {

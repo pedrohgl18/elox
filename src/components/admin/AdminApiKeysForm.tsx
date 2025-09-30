@@ -143,12 +143,23 @@ export function AdminApiKeysForm() {
             <Button type="button" disabled={ttTestLoading || !ttTestUrl.trim()} onClick={async () => {
               setTtTestLoading(true); setError(null); setSuccess(null); setTtTestOutput(null);
               try {
-                const res = await fetch('/api/admin/tiktok-collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ttTestUrl.trim() }) });
-                const raw = await res.text();
-                let j: any = null;
-                try { j = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
-                if (!res.ok) throw new Error((j && j.error) || raw || 'Falha na coleta');
-                setTtTestOutput(j ?? { raw });
+                const start = await fetch('/api/admin/tiktok-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: ttTestUrl.trim() }) });
+                const sr = await start.text(); let sj: any = null; try { sj = sr ? JSON.parse(sr) : null; } catch {}
+                if (!start.ok) throw new Error((sj && sj.error) || sr || 'Falha ao iniciar coleta');
+                const runId = sj?.runId; if (!runId) throw new Error('Start sem runId');
+                const maxMs = 25000; const began = Date.now();
+                async function poll(): Promise<any | null> {
+                  const qs = new URLSearchParams({ runId, url: ttTestUrl.trim() }).toString();
+                  const st = await fetch(`/api/admin/tiktok-status?${qs}`);
+                  const tx = await st.text(); let tj: any = null; try { tj = tx ? JSON.parse(tx) : null; } catch {}
+                  if (st.ok && tj && (tj.views !== undefined || tj.hashtags || tj.mentions)) return tj;
+                  if (Date.now() - began > maxMs) return null;
+                  await new Promise((r) => setTimeout(r, 2000));
+                  return poll();
+                }
+                const final = await poll();
+                if (!final) throw new Error('Coleta iniciada mas não finalizou a tempo. Tente novamente em alguns segundos.');
+                setTtTestOutput(final);
                 setSuccess('Coleta TikTok concluída.');
               } catch (e: any) {
                 setTtTestOutput(e?.message ? { error: e.message } : null);

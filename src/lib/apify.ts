@@ -265,3 +265,31 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   })();
   return { views, hashtags, mentions };
 }
+
+// --- Apify async helpers ---
+export async function apifyStartRun(token: string, actor: string, input: Record<string, any>, waitForFinish: number = 0): Promise<{ runId: string | null }> {
+  const url = `https://api.apify.com/v2/acts/${encodeURIComponent(actor)}/runs?token=${encodeURIComponent(token)}&waitForFinish=${Math.max(0, waitForFinish)}`;
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
+  if (!res.ok) return { runId: null };
+  const j = await res.json().catch(() => null) as any;
+  const runId = j?.data?.id || j?.id || null;
+  return { runId: runId || null };
+}
+
+export async function apifyGetRun(token: string, runId: string): Promise<{ status: string | null; datasetId: string | null }> {
+  const url = `https://api.apify.com/v2/actor-runs/${encodeURIComponent(runId)}?token=${encodeURIComponent(token)}`;
+  const res = await fetch(url);
+  if (!res.ok) return { status: null, datasetId: null };
+  const j = await res.json().catch(() => null) as any;
+  const status = j?.data?.status || j?.status || null;
+  const datasetId = j?.data?.defaultDatasetId || j?.data?.datasetId || null;
+  return { status, datasetId };
+}
+
+export async function apifyGetDatasetItems(token: string, datasetId: string, limit: number = 10): Promise<any[]> {
+  const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=${Math.max(1, Math.min(50, limit))}`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const j = await res.json().catch(() => []) as any[];
+  return Array.isArray(j) ? j : [];
+}
