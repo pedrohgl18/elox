@@ -8,11 +8,13 @@ import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { formatCurrencyBRL } from '@/lib/format';
 import { BarChart } from '@/components/charts/BarChart';
-import { BarChart3, Calendar, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lucide-react';
-import { Video as VideoType, Payment } from '@/lib/types';
+import { BarChart3, Eye, Video, DollarSign, TrendingUp, Clock, Target } from 'lucide-react';
+import { Video as VideoType, Payment, Competition } from '@/lib/types';
 import { getSupabaseServiceClient } from '@/lib/supabaseClient';
 
-export default async function StatsPage() {
+type Search = { from?: string; to?: string };
+
+export default async function StatsPage({ searchParams }: { searchParams?: Search }) {
   const session: any = await getServerSession(authOptions as any);
   
   if (!session?.user) {
@@ -32,6 +34,27 @@ export default async function StatsPage() {
 
   const videos: VideoType[] = await db.video.listForUser(user);
   const payments: Payment[] = await db.payment.listForUser(user);
+  const competitions: Competition[] = await db.competition.list();
+
+  // Filtros por data (submittedAt)
+  const fromParam = searchParams?.from;
+  const toParam = searchParams?.to;
+  let fromDate: Date | null = null;
+  let toDate: Date | null = null;
+  if (fromParam) {
+    const d = new Date(fromParam + 'T00:00:00');
+    if (!isNaN(d.getTime())) fromDate = d;
+  }
+  if (toParam) {
+    const d = new Date(toParam + 'T23:59:59');
+    if (!isNaN(d.getTime())) toDate = d;
+  }
+  const filteredVideos = videos.filter((v) => {
+    const ts = new Date(v.submittedAt).getTime();
+    if (fromDate && ts < fromDate.getTime()) return false;
+    if (toDate && ts > toDate.getTime()) return false;
+    return true;
+  });
 
   const totalEarnings = payments
     .filter((p: Payment) => p.status !== 'FAILED')
@@ -39,8 +62,8 @@ export default async function StatsPage() {
   // Últimas métricas do Supabase por URL
   const supa = getSupabaseServiceClient();
   const latestByUrl = new Map<string, { views: number | null; hashtags?: string[]; mentions?: string[]; collected_at?: string }>();
-  if (supa && videos.length > 0) {
-    const urls = videos.map((v) => v.url);
+  if (supa && filteredVideos.length > 0) {
+    const urls = filteredVideos.map((v) => v.url);
     const { data: metrics } = await supa
       .from('video_metrics')
       .select('url,views,hashtags,mentions,collected_at')
@@ -53,20 +76,20 @@ export default async function StatsPage() {
     }
   }
 
-  const totalViews = videos.reduce((acc: number, v: VideoType) => {
+  const totalViews = filteredVideos.reduce((acc: number, v: VideoType) => {
     const m = latestByUrl.get(v.url);
     const views = typeof m?.views === 'number' ? m.views : v.views;
     return acc + (views || 0);
   }, 0);
-  const approvedVideos = videos.filter((v: VideoType) => v.status === 'APPROVED').length;
-  const pendingVideos = videos.filter((v: VideoType) => v.status === 'PENDING').length;
-  const rejectedVideos = videos.filter((v: VideoType) => v.status === 'REJECTED').length;
+  const approvedVideos = filteredVideos.filter((v: VideoType) => v.status === 'APPROVED').length;
+  const pendingVideos = filteredVideos.filter((v: VideoType) => v.status === 'PENDING').length;
+  const rejectedVideos = filteredVideos.filter((v: VideoType) => v.status === 'REJECTED').length;
 
   // Estatísticas por rede social
-  const tiktokVideos = videos.filter((v: VideoType) => v.socialMedia === 'tiktok');
-  const instagramVideos = videos.filter((v: VideoType) => v.socialMedia === 'instagram');
-  const kwaiVideos = videos.filter((v: VideoType) => v.socialMedia === 'kwai');
-  const youtubeVideos = videos.filter((v: VideoType) => v.socialMedia === 'youtube');
+  const tiktokVideos = filteredVideos.filter((v: VideoType) => v.socialMedia === 'tiktok');
+  const instagramVideos = filteredVideos.filter((v: VideoType) => v.socialMedia === 'instagram');
+  const kwaiVideos = filteredVideos.filter((v: VideoType) => v.socialMedia === 'kwai');
+  const youtubeVideos = filteredVideos.filter((v: VideoType) => v.socialMedia === 'youtube');
 
   const chartLabels = ['TikTok', 'Instagram', 'Kwai', 'YouTube'];
   const chartValues = [tiktokVideos.length, instagramVideos.length, kwaiVideos.length, youtubeVideos.length];
@@ -76,20 +99,52 @@ export default async function StatsPage() {
   const approvalRate = videos.length > 0 ? Math.round((approvedVideos / videos.length) * 100) : 0;
   const avgEarningsPerVideo = approvedVideos > 0 ? totalEarnings / approvedVideos : 0;
 
-  // Mock de dados históricos (7 dias)
-  const mockDailyStats = [
-    { day: 'Dom', views: 2500, earnings: 12.50 },
-    { day: 'Seg', views: 3200, earnings: 16.00 },
-    { day: 'Ter', views: 2800, earnings: 14.00 },
-    { day: 'Qua', views: 3800, earnings: 19.00 },
-    { day: 'Qui', views: 4200, earnings: 21.00 },
-    { day: 'Sex', views: 5100, earnings: 25.50 },
-    { day: 'Sab', views: 4600, earnings: 23.00 }
-  ];
+  // Uploads por dia (dados reais)
+  // Determina janela: filtros (from/to) ou últimos 14 dias por padrão
+  let startWindow: Date;
+  let endWindow: Date;
+  if (fromDate || toDate) {
+    startWindow = fromDate ? new Date(fromDate) : new Date(Math.min(...filteredVideos.map(v => new Date(v.submittedAt).getTime())) || Date.now());
+    endWindow = toDate ? new Date(toDate) : new Date(Math.max(...filteredVideos.map(v => new Date(v.submittedAt).getTime())) || Date.now());
+  } else {
+    endWindow = new Date();
+    startWindow = new Date(endWindow.getTime() - 13 * 24 * 60 * 60 * 1000);
+  }
+  // Normaliza para dias inteiros
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startDay = new Date(startWindow.getFullYear(), startWindow.getMonth(), startWindow.getDate());
+  const endDay = new Date(endWindow.getFullYear(), endWindow.getMonth(), endWindow.getDate());
+  const days: string[] = [];
+  const counts: number[] = [];
+  for (let t = startDay.getTime(); t <= endDay.getTime(); t += dayMs) {
+    const d = new Date(t);
+    const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    days.push(label);
+    counts.push(filteredVideos.filter(v => {
+      const vd = new Date(v.submittedAt);
+      return vd.getFullYear() === d.getFullYear() && vd.getMonth() === d.getMonth() && vd.getDate() === d.getDate();
+    }).length);
+  }
+
+  // Resumo por competição (dados reais)
+  const compById = new Map(competitions.map(c => [c.id, c.name] as const));
+  type CompAgg = { name: string; videos: number; views: number; approved: number; pending: number; rejected: number };
+  const byCompetition = new Map<string, CompAgg>();
+  for (const v of filteredVideos) {
+    const key = v.competitionId || 'none';
+    const name = v.competitionId ? (compById.get(v.competitionId) || 'Competição') : 'Sem competição';
+    const agg = byCompetition.get(key) || { name, videos: 0, views: 0, approved: 0, pending: 0, rejected: 0 };
+    agg.videos += 1;
+    const m = latestByUrl.get(v.url);
+    const views = typeof m?.views === 'number' ? m.views : (v.views || 0);
+    agg.views += views || 0;
+    if (v.status === 'APPROVED') agg.approved += 1; else if (v.status === 'PENDING') agg.pending += 1; else if (v.status === 'REJECTED') agg.rejected += 1;
+    byCompetition.set(key, agg);
+  }
 
   return (
     <UserLayout username={user.username} email={user.email}>
-      {/* Header */}
+      {/* Header e filtros */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">
           <div className="bg-purple-100 p-2 rounded-lg">
@@ -100,6 +155,20 @@ export default async function StatsPage() {
             <p className="text-gray-600">Análise detalhada do seu desempenho</p>
           </div>
         </div>
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">De</label>
+            <input type="date" name="from" defaultValue={fromParam || ''} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Até</label>
+            <input type="date" name="to" defaultValue={toParam || ''} className="border rounded px-2 py-1 text-sm" />
+          </div>
+          <button type="submit" className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm">Aplicar</button>
+          {(fromParam || toParam) && (
+            <a href="/dashboard/stats" className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 text-sm">Limpar</a>
+          )}
+        </form>
       </div>
 
       {/* KPIs Resumo */}
@@ -181,38 +250,13 @@ export default async function StatsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Status dos Vídeos */}
+        {/* Uploads por dia (dados reais) */}
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Status dos Vídeos</h3>
+            <h3 className="text-lg font-semibold">Uploads por dia</h3>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="font-medium text-slate-200">Aprovados</span>
-                </div>
-                <span className="text-2xl font-bold text-green-400">{approvedVideos}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                  <span className="font-medium text-slate-200">Pendentes</span>
-                </div>
-                <span className="text-2xl font-bold text-yellow-400">{pendingVideos}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <span className="font-medium text-slate-200">Rejeitados</span>
-                </div>
-                <span className="text-2xl font-bold text-red-400">{rejectedVideos}</span>
-              </div>
-            </div>
+            <BarChart labels={days} values={counts} />
           </CardContent>
         </Card>
       </div>
@@ -265,34 +309,40 @@ export default async function StatsPage() {
         </Card>
       </div>
 
-      {/* Performance Semanal (Mock) */}
+      {/* Resumo por competição (dados reais) */}
       <Card className="mt-8">
         <CardHeader>
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <span className="font-semibold">Performance dos Últimos 7 Dias</span>
-          </div>
+          <h3 className="text-lg font-semibold">Resumo por Competição</h3>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Dia</th>
-                  <th className="text-right py-2">Views</th>
-                  <th className="text-right py-2">Ganhos</th>
+                  <th className="text-left py-2 px-2">Competição</th>
+                  <th className="text-right py-2 px-2">Vídeos</th>
+                  <th className="text-right py-2 px-2">Views (última)</th>
+                  <th className="text-right py-2 px-2">Aprovados</th>
+                  <th className="text-right py-2 px-2">Pendentes</th>
+                  <th className="text-right py-2 px-2">Rejeitados</th>
                 </tr>
               </thead>
               <tbody>
-                {mockDailyStats.map((stat, index) => (
-                  <tr key={index} className="border-b border-gray-100">
-                    <td className="py-2 font-medium">{stat.day}</td>
-                    <td className="text-right py-2">{stat.views.toLocaleString()}</td>
-                    <td className="text-right py-2 text-green-600">{formatCurrencyBRL(stat.earnings)}</td>
+                {[...byCompetition.values()].map((row, idx) => (
+                  <tr key={idx} className="border-b border-gray-100">
+                    <td className="py-2 px-2 font-medium">{row.name}</td>
+                    <td className="py-2 px-2 text-right">{row.videos}</td>
+                    <td className="py-2 px-2 text-right">{row.views.toLocaleString()}</td>
+                    <td className="py-2 px-2 text-right">{row.approved}</td>
+                    <td className="py-2 px-2 text-right">{row.pending}</td>
+                    <td className="py-2 px-2 text-right">{row.rejected}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {byCompetition.size === 0 && (
+              <div className="text-center py-6 text-sm text-gray-500">Nenhum vídeo neste período.</div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -319,7 +369,7 @@ export default async function StatsPage() {
                 </tr>
               </thead>
               <tbody>
-                {videos.map((v) => {
+                {filteredVideos.map((v) => {
                   const m = latestByUrl.get(v.url);
                   const views = typeof m?.views === 'number' ? m.views : v.views;
                   return (
@@ -345,7 +395,7 @@ export default async function StatsPage() {
                 })}
               </tbody>
             </table>
-            {videos.length === 0 && (
+            {filteredVideos.length === 0 && (
               <div className="text-center py-8 text-sm text-gray-500">Você ainda não enviou vídeos.</div>
             )}
           </div>
