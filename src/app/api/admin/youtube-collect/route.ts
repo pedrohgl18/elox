@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const yt = await fetchYoutubePublicInsights(url);
     if (!yt) {
       const configured = !!process.env.YOUTUBE_API_KEY;
-      return NextResponse.json({ error: 'YouTube API não configurada (YOUTUBE_API_KEY ausente).', hint: { configured } }, { status: 502 });
+      return NextResponse.json({ error: 'YouTube Data API não configurada. Defina YOUTUBE_API_KEY nas variáveis de ambiente (Netlify).', hint: { configured } }, { status: 502 });
     }
     const videoId = parseYoutubeId(url);
     const ins = await supa
@@ -50,6 +50,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ url, videoId, views: yt.views, hashtags: yt.hashtags, mentions: yt.mentions });
   } catch (e: any) {
     console.error('[youtube-collect] collect error:', e);
-    return NextResponse.json({ error: e.message || 'Failed to collect' }, { status: 500 });
+    // Mapeia erros comuns da YouTube Data API
+    const msg = String(e?.message || '').toLowerCase();
+    const code = e?.code || '';
+    if (code === 'YOUTUBE_QUOTA' || msg.includes('quota') || msg.includes('dailylimitexceeded')) {
+      return NextResponse.json({ error: 'Limite de cota da YouTube Data API atingido. Tente novamente mais tarde.' }, { status: 429 });
+    }
+    if (msg.includes('apikey') || msg.includes('keyinvalid') || msg.includes('forbidden 403')) {
+      return NextResponse.json({ error: 'Chave da YouTube Data API inválida ou sem permissão. Verifique YOUTUBE_API_KEY no Netlify.' }, { status: 403 });
+    }
+    return NextResponse.json({ error: e.message || 'Falha ao coletar métricas do YouTube.' }, { status: 500 });
   }
 }

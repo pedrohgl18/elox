@@ -51,8 +51,18 @@ export async function fetchYoutubePublicInsights(url: string): Promise<YoutubeIn
   api.searchParams.set('key', key);
   const resp = await fetch(api.toString(), { cache: 'no-store' });
   if (!resp.ok) {
-    const body = await resp.text().catch(() => '');
-    throw new Error(`YouTube API falhou: ${resp.status} ${body?.slice?.(0, 200)}`);
+    // tenta extrair motivo do erro
+    let detail = '';
+    try {
+      const j = await resp.json();
+      const reason = j?.error?.errors?.[0]?.reason || '';
+      const message = j?.error?.message || '';
+      detail = `${reason} ${message}`.trim();
+    } catch {
+      const body = await resp.text().catch(() => '');
+      detail = body?.slice?.(0, 200) || '';
+    }
+    throw new Error(`YouTube API falhou: ${resp.status} ${detail}`);
   }
   const json = await resp.json().catch(() => null) as any;
   const item = Array.isArray(json?.items) && json.items.length ? json.items[0] : null;

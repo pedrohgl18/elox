@@ -29,11 +29,11 @@ export async function POST(req: Request) {
   if (!authUser || authUser.role !== 'clipador') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json().catch(() => null) as { url?: string; socialMedia?: 'tiktok' | 'instagram' | 'kwai' | 'youtube'; competitionId?: string | null } | null;
-  if (!body?.url || !body.socialMedia) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  if (!body?.url || !body.socialMedia) return NextResponse.json({ error: 'Corpo inválido: informe URL e rede social.' }, { status: 400 });
 
   // valida e normaliza URL
   const validation = validateVideoUrl(body.url, body.socialMedia);
-  if (!validation.ok) return NextResponse.json({ error: validation.reason || 'Invalid URL' }, { status: 400 });
+  if (!validation.ok) return NextResponse.json({ error: validation.reason || 'URL inválida' }, { status: 400 });
 
   // rate limiting simples
   const key = authUser.id;
@@ -74,6 +74,6 @@ export async function POST(req: Request) {
     if (code === '23505' || msg.includes('duplicate') || msg.includes('unique')) {
       return NextResponse.json({ error: 'Este vídeo já foi enviado.' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Falha ao salvar o vídeo.' }, { status: 500 });
+    return NextResponse.json({ error: 'Falha ao salvar o vídeo. Tente novamente em instantes.' }, { status: 500 });
   }
 }

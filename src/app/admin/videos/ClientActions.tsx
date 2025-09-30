@@ -23,13 +23,25 @@ export default function ClientActions({ url, platform = 'instagram' }: { url: st
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url }),
       });
+      const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || 'Falha ao coletar');
+        throw new Error(j?.error || 'Falha ao coletar');
       }
-      show('Coleta concluída.', { type: 'success' });
+      if (j?.skipped && j?.reason === 'recent') {
+        show(`Coleta ignorada (cooldown). Última: ${j?.latestAt ? new Date(j.latestAt).toLocaleString('pt-BR') : 'há pouco'}.`, { type: 'info' });
+      } else {
+        show('Coleta concluída.', { type: 'success' });
+      }
     } catch (e: any) {
-      show(e?.message || 'Erro ao coletar', { type: 'error' });
+      const msg = String(e?.message || 'Erro ao coletar');
+      // ajustes de mensagens mais amigáveis
+      if (msg.toLowerCase().includes('cota') || msg.toLowerCase().includes('quota')) {
+        show('Limite de cota da YouTube Data API atingido. Tente novamente mais tarde.', { type: 'warning' });
+      } else if (msg.toLowerCase().includes('não configurada') || msg.toLowerCase().includes('inválida')) {
+        show(msg, { type: 'warning' });
+      } else {
+        show(msg, { type: 'error' });
+      }
     } finally {
       setLoading(false);
     }
