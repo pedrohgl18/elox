@@ -32,11 +32,15 @@ export async function POST(req: Request) {
         }
       }
     }
-    const tk = await runApifyTiktok(url).catch(() => null);
+    let tk = await runApifyTiktok(url).catch(() => null);
+    // fallback: tentar ator específico de vídeo
+    if (!tk) {
+      tk = await runApifyTiktok(url, { actorId: 'clockworks~tiktok-video-scraper' }).catch(() => null);
+    }
     if (!tk) {
       const configured = !!process.env.APIFY_TOKEN;
       const actor = (process.env.APIFY_ACTOR_TIKTOK || 'clockworks~tiktok-scraper').replace('/', '~');
-      const waitSec = Math.max(5, Math.min(60, Number(process.env.APIFY_WAIT_SEC) || 25));
+      const waitSec = Math.max(5, Math.min(60, Number(process.env.APIFY_WAIT_SEC) || 8));
       return NextResponse.json({ error: 'Apify TikTok não retornou dados. Verifique APIFY_TOKEN e APIFY_ACTOR_TIKTOK.', hint: { configured, actor, waitSec } }, { status: 502 });
     }
     const shortcode = parseTiktokId(url);

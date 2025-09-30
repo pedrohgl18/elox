@@ -177,7 +177,9 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   let actor = opts?.actorId || env('APIFY_ACTOR_TIKTOK') || 'clockworks~tiktok-scraper';
   if (actor.includes('/')) actor = actor.replace('/', '~');
   if (!token) return null;
-  const wait = Math.max(5, Math.min(60, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 25)));
+  // TikTok geralmente demora mais; porém Netlify Functions têm timeout curto.
+  // Limitamos o wait a no máximo 10s (padrão 8) para evitar timeouts do servidor.
+  const wait = Math.max(5, Math.min(10, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 8)));
   const normalizedUrl = normalizeTiktokUrl(url);
   const baseInputs: Record<string, any>[] = [
     { videoUrls: [normalizedUrl] },
