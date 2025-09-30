@@ -67,24 +67,40 @@ async function startActorRunAndGetItems(token: string, actor: string, wait: numb
   }
   const run = await runRes.json().catch(() => null) as any;
   const runId = run?.data?.id || run?.data?.id?.toString?.();
-  const runStatus = run?.data?.status || run?.status;
-  const datasetId = run?.data?.defaultDatasetId || run?.data?.datasetId || run?.data?.defaultDatasetId || run?.data?.datasetId;
+  const datasetId = run?.data?.defaultDatasetId || run?.data?.datasetId;
   if (!datasetId) return null;
   const itemsUrl = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true&format=json&limit=1`;
-  let itemsRes = await fetch(itemsUrl);
-  if (!itemsRes.ok) return null;
-  let items = await itemsRes.json().catch(() => []) as ApifyInstagramItem[];
-  if ((!Array.isArray(items) || items.length === 0)) {
-    await new Promise((r) => setTimeout(r, 3000));
-    itemsRes = await fetch(itemsUrl);
-    if (!itemsRes.ok) return null;
-    items = await itemsRes.json().catch(() => []) as ApifyInstagramItem[];
+  const statusUrl = runId ? `https://api.apify.com/v2/actor-runs/${encodeURIComponent(runId)}` : null;
+
+  // Poll dataset for items with backoff up to ~wait seconds (min 5 attempts)
+  const intervalMs = 3000;
+  const attempts = Math.max(5, Math.ceil(wait / 3) + 3);
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const itemsRes = await fetch(itemsUrl);
+      if (itemsRes.ok) {
+        const items = await itemsRes.json().catch(() => []) as ApifyInstagramItem[];
+        if (Array.isArray(items) && items.length > 0) return items;
+      }
+    } catch {}
+    // Optionally inspect run status for debugging
+    if (statusUrl && (i % 2 === 1)) {
+      try {
+        const st = await fetch(statusUrl);
+        const sj = await st.json().catch(() => null) as any;
+        const s = sj?.data?.status || sj?.status;
+        if (s === 'SUCCEEDED' || s === 'SUCCEED') {
+          // if succeeded but still empty, keep one more fetch
+        } else if (s === 'FAILED' || s === 'ABORTED' || s === 'TIMED_OUT') {
+          console.error('[apify] run ended without data', { actor, runId, status: s });
+          break;
+        }
+      } catch {}
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
-  if (!Array.isArray(items) || items.length === 0) {
-    console.error('[apify] dataset empty', { actor, runId, runStatus, datasetId });
-    return null;
-  }
-  return items;
+  console.error('[apify] dataset empty after polling', { actor, runId, datasetId });
+  return null;
 }
 
 export async function runApifyInstagram(url: string, opts?: { waitForFinishSec?: number; actorId?: string }): Promise<{ views: number | null; hashtags: string[]; mentions: string[] } | null> {
@@ -164,11 +180,12 @@ export async function runApifyTiktok(url: string, opts?: { waitForFinishSec?: nu
   const wait = Math.max(5, Math.min(60, opts?.waitForFinishSec ?? (Number(env('APIFY_WAIT_SEC')) || 25)));
   const normalizedUrl = normalizeTiktokUrl(url);
   const baseInputs: Record<string, any>[] = [
-    { directUrls: [normalizedUrl] },
+    { videoUrls: [normalizedUrl] },
     { startUrls: [{ url: normalizedUrl }] },
+    { directUrls: [normalizedUrl] },
     { urls: [normalizedUrl] },
     { url: normalizedUrl },
-    { videoUrls: [normalizedUrl] },
+    { profiles: [], hashtags: [], videoUrls: [normalizedUrl] },
   ];
   const variants: ((b: Record<string, any>) => Record<string, any>)[] = [
     (b) => ({ ...b }),
