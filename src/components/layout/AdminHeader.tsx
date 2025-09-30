@@ -2,6 +2,7 @@
 import React from 'react';
 import { LogOut, Shield, Menu } from 'lucide-react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 
 export function AdminHeader({ onOpenMenu }: { onOpenMenu?: () => void }) {
   return (
@@ -24,10 +25,13 @@ export function AdminHeader({ onOpenMenu }: { onOpenMenu?: () => void }) {
             <span className="font-semibold tracking-wide text-slate-100">EloX Admin</span>
           </Link>
         </div>
-        <Link href="/auth/logout" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+        <button
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           <span>Sair</span>
-        </Link>
+        </button>
       </div>
     </header>
   );

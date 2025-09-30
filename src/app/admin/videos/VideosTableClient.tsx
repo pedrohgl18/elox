@@ -54,37 +54,41 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     if (!targets.length) return;
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
-    const concurrency = 3;
+    const concurrency = 4;
     let done = 0;
-    async function worker(batch: VideoRow[]) {
-      for (const r of batch) {
-        try {
-          const endpoint = r.socialMedia === 'instagram'
-            ? '/api/admin/instagram-collect'
-            : (r.socialMedia === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
-          await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: r.url, force }),
-          });
-        } catch {}
-        done++;
-        setProgress({ total: targets.length, done });
+    const queue = [...targets];
+    async function workOne(r: VideoRow) {
+      try {
+        if (r.socialMedia === 'instagram' || r.socialMedia === 'youtube') {
+          const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+          await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url, force }) });
+        } else {
+          // TikTok: start + poll
+          const startRes = await fetch('/api/admin/tiktok-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url }) });
+          const stRaw = await startRes.text(); let st: any = null; try { st = stRaw ? JSON.parse(stRaw) : null; } catch {}
+          if (startRes.ok && st?.runId) {
+            const began = Date.now();
+            const maxMs = 30000; // 30s por item
+            while (Date.now() - began < maxMs) {
+              const qs = new URLSearchParams({ runId: st.runId, url: r.url }).toString();
+              const statRes = await fetch(`/api/admin/tiktok-status?${qs}`);
+              const statText = await statRes.text(); let sj: any = null; try { sj = statText ? JSON.parse(statText) : null; } catch {}
+              if (statRes.ok && (sj?.views !== undefined || sj?.hashtags || sj?.mentions || sj?.dedup)) break;
+              await new Promise((res) => setTimeout(res, 2000));
+            }
+          }
+        }
+      } catch {}
+      done++;
+      setProgress({ total: targets.length, done });
+    }
+    async function runner() {
+      while (queue.length) {
+        const r = queue.shift()!;
+        await workOne(r);
       }
     }
-    const batches: VideoRow[][] = [];
-    for (let i = 0; i < targets.length; i += 1) {
-      batches.push([targets[i]]);
-    }
-    // Dispara até "concurrency" workers rodando em paralelo, cada um consumindo uma fila simples
-    let idx = 0;
-    const runNext = async () => {
-      if (idx >= batches.length) return;
-      const b = batches[idx++];
-      await worker(b);
-      await runNext();
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, () => runNext()));
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => runner()));
     setRunning('idle');
     // Recarrega para atualizar as últimas métricas
     window.location.reload();
@@ -97,30 +101,39 @@ export default function VideosTableClient({ rows, approveAction, rejectAction }:
     setRunning('collect');
     setProgress({ total: targets.length, done: 0 });
     let done = 0;
-    const concurrency = 4;
+    const concurrency = 5;
+    const queue = [...targets];
     const work = async (r: VideoRow) => {
       try {
-        const endpoint = r.socialMedia === 'instagram'
-          ? '/api/admin/instagram-collect'
-          : (r.socialMedia === 'youtube' ? '/api/admin/youtube-collect' : '/api/admin/tiktok-collect');
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: r.url, force }),
-        });
+        if (r.socialMedia === 'instagram' || r.socialMedia === 'youtube') {
+          const endpoint = r.socialMedia === 'instagram' ? '/api/admin/instagram-collect' : '/api/admin/youtube-collect';
+          await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url, force }) });
+        } else {
+          const startRes = await fetch('/api/admin/tiktok-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: r.url }) });
+          const stRaw = await startRes.text(); let st: any = null; try { st = stRaw ? JSON.parse(stRaw) : null; } catch {}
+          if (startRes.ok && st?.runId) {
+            const began = Date.now();
+            const maxMs = 30000;
+            while (Date.now() - began < maxMs) {
+              const qs = new URLSearchParams({ runId: st.runId, url: r.url }).toString();
+              const statRes = await fetch(`/api/admin/tiktok-status?${qs}`);
+              const statText = await statRes.text(); let sj: any = null; try { sj = statText ? JSON.parse(statText) : null; } catch {}
+              if (statRes.ok && (sj?.views !== undefined || sj?.hashtags || sj?.mentions || sj?.dedup)) break;
+              await new Promise((res) => setTimeout(res, 2000));
+            }
+          }
+        }
       } catch {}
       done++;
       setProgress({ total: targets.length, done });
     };
-    // pool simples
-    const queue = [...targets];
     async function runner() {
       while (queue.length) {
         const r = queue.shift()!;
         await work(r);
       }
     }
-    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, runner));
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => runner()));
     setRunning('idle');
     window.location.reload();
   }
