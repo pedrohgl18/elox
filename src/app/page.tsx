@@ -10,7 +10,6 @@ import CompetitionBanner from '@/components/ui/CompetitionBanner';
 import { db } from '@/lib/database';
 import { Competition } from '@/lib/types';
 import LeaderboardPreview from '@/components/ui/LeaderboardPreview';
-import RewardsBreakdown from '@/components/ui/RewardsBreakdown';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import PublicHeader from '@/components/layout/PublicHeader';
@@ -160,7 +159,7 @@ export default async function LandingPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-6 lg:col-span-2">
               <Reveal delay={0.05}>
                 <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-lg">
@@ -186,11 +185,7 @@ export default async function LandingPage() {
                 </div>
               </Reveal>
             </div>
-            <Reveal delay={0.15}>
-              <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-lg">
-                <RewardsBreakdown />
-              </div>
-            </Reveal>
+            
           </section>
 
           <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-900 via-indigo-900 to-sky-900 px-6 py-12 text-white shadow-xl sm:px-10" id="suite">
@@ -210,28 +205,30 @@ export default async function LandingPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-4" id="metricas">
-            <Reveal delay={0.05}>
-              <StatCard label="Clipadores ativos" value="3.2k+" accentClass="border-white/10" />
-            </Reveal>
-            <Reveal delay={0.1}>
-              <StatCard label="Vídeos monetizados" value="120k+" accentClass="border-white/10" />
-            </Reveal>
-            <Reveal delay={0.15}>
-              <StatCard label="Pagamentos processados" value="R$ 420k+" accentClass="border-white/10" />
-            </Reveal>
-            <Reveal delay={0.2}>
-              <div className="rounded-2xl border border-slate-200 bg-white/85 p-6 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-800">Viralidade agora</span>
-                  <span className="text-xs font-medium uppercase tracking-[0.25em] text-slate-400">ao vivo</span>
-                </div>
-                <div className="flex items-end justify-between gap-4">
-                  <ViralMeter />
-                  <span className="text-xs text-slate-500">fluxo de posts</span>
-                </div>
-              </div>
-            </Reveal>
+          {/* Waitlist / Quero ser avisado */}
+          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 px-6 py-10 shadow-xl sm:px-10">
+            <div className="mx-auto grid max-w-3xl gap-4 text-center">
+              <Reveal delay={0.05}>
+                <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">Quero ser avisado</h2>
+              </Reveal>
+              <Reveal delay={0.1}>
+                <p className="text-slate-600">Informe seu e-mail para receber a abertura da próxima campanha.</p>
+              </Reveal>
+              <Reveal delay={0.15}>
+                <form action="/api/notify" method="post" className="mx-auto flex w-full max-w-md flex-col gap-3 sm:flex-row">
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="seu@email.com"
+                    className="h-12 w-full rounded-full border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  <button type="submit" className="h-12 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-6 font-semibold text-white shadow-lg">
+                    Enviar
+                  </button>
+                </form>
+              </Reveal>
+            </div>
           </section>
 
           <section id="depoimentos" className="space-y-8">

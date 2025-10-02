@@ -44,10 +44,10 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
                 <Link
                   key={href}
                   href={href}
-                  className="group relative overflow-hidden rounded-full px-3 py-2 transition-colors hover:text-sky-700"
+                  className="group relative overflow-hidden rounded-full px-3 py-2 transition-colors hover:text-sky-900"
                 >
                   {label}
-                  <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 opacity-0 transition group-hover:opacity-100" />
+                  <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1 rounded-full bg-gradient-to-r from-sky-500 via-indigo-600 to-blue-950 opacity-0 transition group-hover:opacity-100" />
                 </Link>
               ))}
             </nav>
@@ -56,7 +56,7 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
               {isLogged ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
                 >
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
@@ -70,7 +70,7 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
                   </Link>
                   <Link
                     href="/auth/register"
-                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
                   >
                     <Sparkles className="h-4 w-4" /> Criar conta
                   </Link>
@@ -115,7 +115,7 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
                   <Link
                     onClick={() => setIsOpen(false)}
                     href="/dashboard"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-white shadow-lg"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-5 py-2 text-white shadow-lg"
                   >
                     <LayoutDashboard className="h-4 w-4" /> Dashboard
                   </Link>
@@ -131,7 +131,7 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
                     <Link
                       onClick={() => setIsOpen(false)}
                       href="/auth/register"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-white shadow-lg"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-5 py-2 text-white shadow-lg"
                     >
                       <Sparkles className="h-4 w-4" /> Criar conta
                     </Link>

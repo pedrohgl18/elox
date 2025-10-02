@@ -29,7 +29,7 @@ const heroPills = [
 
 export function LandingHero({ isLogged, activeInfo }: LandingHeroProps) {
   return (
-    <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-white via-sky-50/70 to-indigo-50 px-6 py-14 shadow-xl sm:px-10 lg:px-14">
+  <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-white via-sky-50/70 to-blue-50 px-6 py-14 shadow-xl sm:px-10 lg:px-14">
       <div className="pointer-events-none absolute -left-24 top-1/4 h-80 w-80 rounded-full bg-sky-200/50 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-indigo-200/40 blur-[120px]" />
 
