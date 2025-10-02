@@ -9,11 +9,11 @@ interface TestimonialCardProps {
 
 export function TestimonialCard({ name, text, social }: TestimonialCardProps) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 shadow p-6 flex flex-col items-center text-center">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-md p-6 flex flex-col items-center text-center">
       <Avatar username={name} className="mb-3" />
-      <p className="text-gray-200 italic mb-2">&ldquo;{text}&rdquo;</p>
-      <div className="font-semibold text-indigo-300">{name}</div>
-      {social && <div className="text-xs text-gray-400">{social}</div>}
+      <p className="text-slate-600 italic mb-2">&ldquo;{text}&rdquo;</p>
+      <div className="font-semibold text-sky-700">{name}</div>
+      {social && <div className="text-xs text-slate-500">{social}</div>}
     </div>
   );
 }

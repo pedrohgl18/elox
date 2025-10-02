@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Upload, BarChart3, Trophy, Wallet, ShieldCheck, HeadphonesIcon } from "lucide-react";
+import { Reveal } from "./Reveal";
 
 type Feature = {
   icon: LucideIcon;
@@ -22,20 +23,28 @@ export default function PanelFeatures() {
   return (
     <section id="recursos" className="py-16">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-extrabold text-indigo-300">Recursos do Painel</h2>
-        <p className="text-gray-300 mt-2">Tudo que você precisa para monetizar seus clipes com eficiência.</p>
-        </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {features.map((f) => {
+        <Reveal delay={0.1}>
+          <h2 className="text-3xl font-extrabold text-slate-900">Recursos do Painel</h2>
+        </Reveal>
+        <Reveal delay={0.2}>
+          <p className="text-slate-600 mt-2">
+            Tudo que você precisa para monetizar seus clipes com eficiência.
+          </p>
+        </Reveal>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {features.map((f, index) => {
           const Icon = f.icon;
           return (
-              <div key={f.title} className="group bg-white/5 rounded-xl p-5 border border-white/10 hover:border-indigo-400/30 shadow-sm hover:shadow-md transition-all">
-                <div className="w-11 h-11 rounded-lg bg-indigo-400/15 text-indigo-300 flex items-center justify-center mb-3 group-hover:bg-indigo-400/25">
-                <Icon className="w-6 h-6" />
+            <Reveal key={f.title} delay={0.1 * index}>
+              <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-sky-100 text-sky-600 group-hover:bg-sky-200">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="font-semibold text-slate-900">{f.title}</h3>
+                <p className="mt-1 text-sm text-slate-600">{f.desc}</p>
               </div>
-                <h3 className="font-semibold text-white">{f.title}</h3>
-                <p className="text-sm text-gray-300 mt-1">{f.desc}</p>
-            </div>
+            </Reveal>
           );
         })}
       </div>

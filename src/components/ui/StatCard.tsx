@@ -9,11 +9,11 @@ interface StatCardProps {
 
 export function StatCard({ icon, label, value, accentClass }: StatCardProps) {
   return (
-    <div className={`rounded-xl border border-white/10 bg-white/5 shadow-sm p-5 flex items-center gap-4 ${accentClass ?? ''}`}>
-      {icon && <div className="shrink-0">{icon}</div>}
+    <div className={`rounded-2xl border border-slate-200 bg-white shadow-md p-5 flex items-center gap-4 ${accentClass ?? ''}`}>
+      {icon && <div className="shrink-0 text-sky-600">{icon}</div>}
       <div>
-        <div className="text-2xl font-extrabold text-white leading-tight">{value}</div>
-        <div className="text-xs uppercase tracking-wide text-gray-400">{label}</div>
+        <div className="text-2xl font-extrabold text-slate-900 leading-tight">{value}</div>
+        <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
       </div>
     </div>
   );

@@ -8,10 +8,12 @@ interface StepCardProps {
 
 export function StepCard({ step, title, description }: StepCardProps) {
   return (
-    <div className="flex flex-col items-center text-center p-4">
-      <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold mb-2">{step}</div>
-      <h4 className="font-semibold mb-1">{title}</h4>
-      <p className="text-gray-500 text-sm">{description}</p>
+    <div className="flex flex-col items-center text-center rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-base font-bold text-sky-700">
+        {step}
+      </div>
+      <h4 className="font-semibold text-slate-900 mb-1">{title}</h4>
+      <p className="text-slate-600 text-sm">{description}</p>
     </div>
   );
 }
