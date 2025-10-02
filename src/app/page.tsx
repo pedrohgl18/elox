@@ -169,12 +169,20 @@ export default async function LandingPage() {
                     <div className="space-y-4">
                       <h3 className="text-2xl font-bold text-slate-900">Nova temporada chegando</h3>
                       <p className="text-slate-600">
-                        Estamos preparando a próxima campanha com marcas parceiras. Cadastre-se para ser avisado em primeira mão.
+                        Estamos preparando a próxima campanha com marcas parceiras. Deixe seu e-mail para ser avisado em primeira mão.
                       </p>
-                      <Link href="/auth/register" className="inline-flex items-center gap-2 text-sm font-semibold text-sky-700">
-                        Quero ser avisado
-                        <PlayCircle className="h-4 w-4" />
-                      </Link>
+                      <form action="/api/notify" method="post" className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="email"
+                          name="email"
+                          required
+                          placeholder="seu@email.com"
+                          className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                        />
+                        <button type="submit" className="h-11 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-6 text-sm font-semibold text-white shadow-lg">
+                          Quero ser avisado
+                        </button>
+                      </form>
                     </div>
                   )}
                 </div>
@@ -188,48 +196,24 @@ export default async function LandingPage() {
             
           </section>
 
-          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-900 via-indigo-900 to-sky-900 px-6 py-12 text-white shadow-xl sm:px-10" id="suite">
+          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 px-6 py-12 text-slate-900 shadow-xl sm:px-10" id="suite">
             <Reveal delay={0.05}>
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">O painel EloX é o seu QG de crescimento</h2>
+              <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">O painel EloX é o seu QG de crescimento</h2>
             </Reveal>
             <Reveal delay={0.1}>
-              <p className="mt-3 max-w-2xl text-slate-200">
+              <p className="mt-3 max-w-2xl text-slate-600">
                 Métricas, envios, financeiro e relacionamento com marcas, tudo no mesmo lugar. Personalize o painel com widgets e alertas
                 que fazem sentido para o seu fluxo.
               </p>
             </Reveal>
-            <div className="mt-10 rounded-[32px] border border-white/15 bg-white/10 p-1 backdrop-blur">
-              <div className="rounded-[28px] bg-white/95 text-slate-900">
+            <div className="mt-10 rounded-[32px] border border-slate-200 bg-white/85 p-6 backdrop-blur-sm">
+              <div className="rounded-[28px] bg-white text-slate-900">
                 <PanelFeatures />
               </div>
             </div>
           </section>
 
-          {/* Waitlist / Quero ser avisado */}
-          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 px-6 py-10 shadow-xl sm:px-10">
-            <div className="mx-auto grid max-w-3xl gap-4 text-center">
-              <Reveal delay={0.05}>
-                <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl">Quero ser avisado</h2>
-              </Reveal>
-              <Reveal delay={0.1}>
-                <p className="text-slate-600">Informe seu e-mail para receber a abertura da próxima campanha.</p>
-              </Reveal>
-              <Reveal delay={0.15}>
-                <form action="/api/notify" method="post" className="mx-auto flex w-full max-w-md flex-col gap-3 sm:flex-row">
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    placeholder="seu@email.com"
-                    className="h-12 w-full rounded-full border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                  />
-                  <button type="submit" className="h-12 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-6 font-semibold text-white shadow-lg">
-                    Enviar
-                  </button>
-                </form>
-              </Reveal>
-            </div>
-          </section>
+          {/* seção de waitlist removida conforme solicitação */}
 
           <section id="depoimentos" className="space-y-8">
             <div className="mx-auto max-w-3xl text-center">

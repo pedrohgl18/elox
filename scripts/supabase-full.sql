@@ -174,6 +174,21 @@ UPDATE public.competitions
      OR allowed_platforms = ARRAY['tiktok','instagram','kwai']::text[];
 
 -- 2) Funções utilitárias
+-- 1.11) Waitlist de e-mails
+CREATE TABLE IF NOT EXISTS public.elox_waitlist (
+  email text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- índice opcional para ordenação por data (não necessário para PK única)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='idx_elox_waitlist_created'
+  ) THEN
+    CREATE INDEX idx_elox_waitlist_created ON public.elox_waitlist (created_at DESC);
+  END IF;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.search_username_ci(search_value text)
 RETURNS SETOF public.profiles AS $$
   SELECT * FROM public.profiles WHERE username_normalized = lower(search_value);

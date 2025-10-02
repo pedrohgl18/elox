@@ -7,8 +7,8 @@ import { motion } from "framer-motion";
 const items = [
   {
     icon: Sparkles,
-    title: "Criadores iniciantes",
-    desc: "Aprenda rápido e monetize desde os primeiros vídeos com uma curva de aprendizado amigável.",
+    title: "Primeiros passos",
+    desc: "Saia do zero com playbooks práticos e cheque-list para clipes que engajam.",
   },
   {
     icon: Rocket,
@@ -18,12 +18,12 @@ const items = [
   {
     icon: Users,
     title: "Times e agências",
-    desc: "Gerencie múltiplos criadores, acompanhe performance e centralize pagamentos.",
+    desc: "Gerencie vários criadores, padronize fluxo e centralize pagamentos com segurança.",
   },
   {
     icon: GraduationCap,
-    title: "Quem quer aprender",
-    desc: "Conteúdo educativo, boas práticas e suporte humano para evoluir no jogo dos clipes.",
+    title: "EloX Academy",
+    desc: "Conteúdo aplicado, boas práticas e mentoria para acelerar sua curva de resultados.",
   },
 ];
 
@@ -66,8 +66,8 @@ export default function Audience({ className }: AudienceProps) {
           >
             <div className="flex items-start gap-4">
               <motion.div
-                whileHover={{ rotate: 8 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"
+                whileHover={{ rotate: 6, scale: 1.02 }}
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600"
               >
                 <Icon className="h-6 w-6" />
               </motion.div>
@@ -76,9 +76,7 @@ export default function Audience({ className }: AudienceProps) {
                 <p className="mt-1 text-sm text-slate-600 sm:text-base">{it.desc}</p>
               </div>
             </div>
-            <div className="mt-auto pt-6 text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">
-              EloX Academy
-            </div>
+            <div className="mt-auto pt-6 text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">Para todos os níveis</div>
           </motion.div>
         );
       })}

@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { LogIn, LayoutDashboard, Menu, Sparkles, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const links = [
@@ -15,6 +15,14 @@ const links = [
 
 export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <>
@@ -22,7 +30,7 @@ export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 text-slate-900 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+        className={`sticky top-0 z-50 w-full border-b text-slate-900 backdrop-blur-xl transition-all ${scrolled ? 'border-slate-200 bg-white/90 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.35)]' : 'border-transparent bg-white/70 shadow-none'}`}
       >
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <Link href="/" className="relative inline-flex items-center gap-3">
