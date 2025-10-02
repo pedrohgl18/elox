@@ -180,7 +180,7 @@ export function LandingHero({ isLogged, activeInfo }: LandingHeroProps) {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute -bottom-12 left-1/2 w-[min(320px,80vw)] -translate-x-1/2 overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-500 via-sky-500 to-cyan-400 px-5 py-4 text-sm text-white shadow-2xl sm:left-auto sm:right-6 sm:translate-x-0"
+            className="relative mt-6 w-full overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-500 via-sky-500 to-cyan-400 px-5 py-4 text-sm text-white shadow-2xl sm:absolute sm:-bottom-12 sm:right-6 sm:mt-0 sm:w-[min(340px,42vw)]"
           >
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -192,7 +192,7 @@ export function LandingHero({ isLogged, activeInfo }: LandingHeroProps) {
                 Aprovação de vídeos
               </div>
             </div>
-            <p className="mt-3 text-xs text-white/80">
+            <p className="mt-3 text-xs text-white/90">
               Conte com curadoria humana para validar seus clipes e liberar pagamentos em tempo recorde.
             </p>
           </motion.div>

@@ -221,8 +221,15 @@ export default async function LandingPage() {
               <StatCard label="Pagamentos processados" value="R$ 420k+" accentClass="border-white/10" />
             </Reveal>
             <Reveal delay={0.2}>
-              <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
-                <ViralMeter />
+              <div className="rounded-2xl border border-slate-200 bg-white/85 p-6 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-800">Viralidade agora</span>
+                  <span className="text-xs font-medium uppercase tracking-[0.25em] text-slate-400">ao vivo</span>
+                </div>
+                <div className="flex items-end justify-between gap-4">
+                  <ViralMeter />
+                  <span className="text-xs text-slate-500">fluxo de posts</span>
+                </div>
               </div>
             </Reveal>
           </section>

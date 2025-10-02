@@ -3,7 +3,7 @@
 export default function ViralMeter() {
   const bars = new Array(9).fill(0);
   return (
-    <div className="flex h-10 items-end gap-1">
+    <div className="flex h-14 items-end gap-1 sm:h-16" role="img" aria-label="Indicador de viralidade em tempo real">
       {bars.map((_, i) => (
         <div
           key={i}
