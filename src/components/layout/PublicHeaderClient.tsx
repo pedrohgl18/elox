@@ -1,84 +1,143 @@
 "use client";
 import Link from 'next/link';
-import { LogIn, LayoutDashboard, Menu, X } from 'lucide-react';
+import { LogIn, LayoutDashboard, Menu, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const links = [
+  { label: 'Benefícios', href: '#beneficios' },
+  { label: 'Suite EloX', href: '#suite' },
+  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Para quem é', href: '#para-quem-e' },
+  { label: 'Depoimentos', href: '#depoimentos' },
+  { label: 'FAQ', href: '#faq' },
+];
 
 export default function PublicHeaderClient({ isLogged }: { isLogged: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
-      <header className="w-full bg-sky-900/95 text-white shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-          <Link href="/" className="text-2xl font-black tracking-tight">
-            EloX
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 text-slate-900 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+      >
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+          <Link href="/" className="relative inline-flex items-center gap-3">
+            <motion.span
+              whileHover={{ scale: 1.04 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="text-2xl font-black tracking-tight text-slate-900"
+            >
+              EloX
+            </motion.span>
+            <span className="hidden rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white md:inline-flex">
+              Live
+            </span>
           </Link>
+
           <div className="flex items-center gap-2">
+            <nav className="hidden items-center gap-1 text-sm font-semibold text-slate-600 lg:flex">
+              {links.map(({ label, href }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="group relative overflow-hidden rounded-full px-3 py-2 transition-colors hover:text-sky-700"
+                >
+                  {label}
+                  <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 opacity-0 transition group-hover:opacity-100" />
+                </Link>
+              ))}
+            </nav>
+
+            <div className="hidden items-center gap-2 lg:flex">
+              {isLogged ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                >
+                  <LayoutDashboard className="h-4 w-4" /> Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <LogIn className="h-4 w-4" /> Entrar
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                  >
+                    <Sparkles className="h-4 w-4" /> Criar conta
+                  </Link>
+                </>
+              )}
+            </div>
+
             <button
-              className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/20 hover:bg-white/10 active:scale-[0.98] transition"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-white/70 active:scale-[0.98] lg:hidden"
               aria-label="Menu"
               onClick={() => setIsOpen((v) => !v)}
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <nav className="hidden lg:flex items-center gap-4 text-sm font-medium">
-              <Link href="#beneficios" className="hover:text-sky-100 transition">Benefícios</Link>
-              <Link href="#recursos" className="hover:text-sky-100 transition">Recursos</Link>
-              <Link href="#como-funciona" className="hover:text-sky-100 transition">Como funciona</Link>
-              <Link href="#para-quem-e" className="hover:text-sky-100 transition">Para quem é</Link>
-              <Link href="#depoimentos" className="hover:text-sky-100 transition">Depoimentos</Link>
-              {isLogged ? (
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sky-900 shadow hover:bg-sky-50 transition"
-                >
-                  <LayoutDashboard className="h-4 w-4" /> Dashboard
-                </Link>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 hover:bg-white/10 transition"
-                >
-                  <LogIn className="h-4 w-4" /> Entrar
-                </Link>
-              )}
-            </nav>
           </div>
         </div>
-      </header>
+      </motion.header>
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="lg:hidden bg-white shadow-lg"
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="border-b border-slate-200 bg-white/95 text-slate-700 shadow-lg backdrop-blur lg:hidden"
           >
-            <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-2 text-slate-700 text-sm font-medium">
-              <Link onClick={() => setIsOpen(false)} href="#beneficios" className="rounded-lg px-3 py-2 hover:bg-sky-50">Benefícios</Link>
-              <Link onClick={() => setIsOpen(false)} href="#recursos" className="rounded-lg px-3 py-2 hover:bg-sky-50">Recursos</Link>
-              <Link onClick={() => setIsOpen(false)} href="#como-funciona" className="rounded-lg px-3 py-2 hover:bg-sky-50">Como funciona</Link>
-              <Link onClick={() => setIsOpen(false)} href="#para-quem-e" className="rounded-lg px-3 py-2 hover:bg-sky-50">Para quem é</Link>
-              <Link onClick={() => setIsOpen(false)} href="#depoimentos" className="rounded-lg px-3 py-2 hover:bg-sky-50">Depoimentos</Link>
-              {isLogged ? (
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-sm font-semibold">
+              {links.map(({ label, href }) => (
                 <Link
+                  key={href}
                   onClick={() => setIsOpen(false)}
-                  href="/dashboard"
-                  className="mt-1 inline-flex items-center justify-center gap-2 rounded-full bg-sky-900 px-4 py-2 text-white shadow hover:bg-sky-800"
+                  href={href}
+                  className="rounded-xl px-3 py-2 transition hover:bg-sky-50"
                 >
-                  <LayoutDashboard className="h-4 w-4" /> Dashboard
+                  {label}
                 </Link>
-              ) : (
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/auth/login"
-                  className="mt-1 inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50"
-                >
-                  <LogIn className="h-4 w-4" /> Entrar
-                </Link>
-              )}
+              ))}
+
+              <div className="mt-2 grid gap-2">
+                {isLogged ? (
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-white shadow-lg"
+                  >
+                    <LayoutDashboard className="h-4 w-4" /> Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/auth/login"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-slate-700 hover:bg-slate-50"
+                    >
+                      <LogIn className="h-4 w-4" /> Entrar
+                    </Link>
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/auth/register"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 px-5 py-2 text-white shadow-lg"
+                    >
+                      <Sparkles className="h-4 w-4" /> Criar conta
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

@@ -1,7 +1,10 @@
-import React from 'react';
+'use client';
+
+import type { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 interface StatCardProps {
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   label: string;
   value: string | number;
   accentClass?: string;
@@ -9,12 +12,27 @@ interface StatCardProps {
 
 export function StatCard({ icon, label, value, accentClass }: StatCardProps) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white shadow-md p-5 flex items-center gap-4 ${accentClass ?? ''}`}>
-      {icon && <div className="shrink-0 text-sky-600">{icon}</div>}
+    <motion.div
+      whileHover={{ y: -8, scale: 1.01 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex items-center gap-4 overflow-hidden rounded-[28px] border border-slate-200 bg-white/85 p-6 shadow-[0_24px_45px_-30px_rgba(15,23,42,0.45)] ${
+        accentClass ?? ''
+      }`}
+    >
+      {icon && (
+        <motion.div
+          initial={{ rotate: 0 }}
+          whileHover={{ rotate: 6 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="shrink-0 rounded-2xl bg-sky-100 p-3 text-sky-600"
+        >
+          {icon}
+        </motion.div>
+      )}
       <div>
-        <div className="text-2xl font-extrabold text-slate-900 leading-tight">{value}</div>
-        <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+        <div className="text-3xl font-extrabold leading-tight text-slate-900">{value}</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{label}</div>
       </div>
-    </div>
+    </motion.div>
   );
 }

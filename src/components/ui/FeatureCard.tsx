@@ -10,11 +10,19 @@ interface FeatureCardProps {
 export function FeatureCard({ icon, title, description, color }: FeatureCardProps) {
   return (
     <div
-      className={`rounded-2xl border border-sky-100 bg-white shadow-md p-6 flex flex-col items-center text-center transition-shadow hover:shadow-xl ${color ?? ''}`}
+      className={`group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/85 p-6 text-left shadow-[0_22px_48px_-30px_rgba(15,23,42,0.45)] transition-all hover:-translate-y-1 hover:shadow-xl ${
+        color ?? ''
+      }`}
     >
-      <div className="mb-3 text-sky-600">{icon}</div>
-      <h3 className="font-bold text-lg mb-2 text-slate-900">{title}</h3>
-      <p className="text-slate-600 text-sm">{description}</p>
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-cyan-400 to-indigo-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-600 shadow-sm">
+        {icon}
+      </div>
+      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-slate-600">{description}</p>
+      <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+        EloX para criadores
+      </div>
     </div>
   );
 }

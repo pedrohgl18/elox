@@ -28,6 +28,9 @@ export default {
       borderRadius: {
         lg: '0.5rem',
       },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+      },
     },
   },
   plugins: [],

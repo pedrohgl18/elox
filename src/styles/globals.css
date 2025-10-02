@@ -16,6 +16,7 @@ body,
 body {
   background-color: rgb(var(--bg));
   color: rgb(var(--fg));
+  font-family: var(--font-sans, 'Inter', sans-serif);
 }
 
 .container {
