@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import { UserLayout } from '@/components/layout/UserLayout';
 import { CompetitionEnrollButton } from '@/components/user/CompetitionEnrollButton';
+import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,14 @@ export default async function UserCompetitionsPage() {
           {items.map((c: Competition) => (
             <div key={c.id} className="border border-slate-800 bg-slate-900/60 rounded-xl p-4 flex gap-4">
               {c.bannerImageUrl ? (
-                <img src={c.bannerImageUrl} alt={c.name} className="h-16 w-28 object-cover rounded-lg border border-slate-800" />
+                <Image
+                  src={c.bannerImageUrl}
+                  alt={c.name}
+                  width={112}
+                  height={64}
+                  unoptimized
+                  className="h-16 w-28 object-cover rounded-lg border border-slate-800"
+                />
               ) : (
                 <div className="h-16 w-28 rounded-lg bg-slate-800/60 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">Sem imagem</div>
               )}

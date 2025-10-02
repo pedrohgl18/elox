@@ -5,6 +5,7 @@ import { formatDateShort } from '@/lib/format';
 import { CompetitionEnrollButton } from '@/components/user/CompetitionEnrollButton';
 import { formatCurrencyBRL } from '@/lib/format';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,16 @@ export default async function PublicCompetitionPage({ params }: { params: { id: 
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-950 to-black text-slate-100 p-6">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center gap-4">
-          {c.bannerImageUrl && <img src={c.bannerImageUrl} alt={c.name} className="h-20 w-36 object-cover rounded-lg border border-slate-800" />}
+          {c.bannerImageUrl && (
+            <Image
+              src={c.bannerImageUrl}
+              alt={c.name}
+              width={144}
+              height={80}
+              unoptimized
+              className="h-20 w-36 object-cover rounded-lg border border-slate-800"
+            />
+          )}
           <div>
             <h1 className="text-2xl font-bold">{c.name}</h1>
             <div className="text-slate-400 text-sm">{formatDateShort(c.startDate)} → {formatDateShort(c.endDate)}</div>

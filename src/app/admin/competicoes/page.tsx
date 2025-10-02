@@ -4,6 +4,7 @@ import { db } from '@/lib/database';
 import { formatDateShort } from '@/lib/format';
 import { Plus, Pencil, Eye } from 'lucide-react';
 import { Competition } from '@/lib/types';
+import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,14 @@ export default async function AdminCompeticoesPage() {
             <div key={c.id} className="border border-slate-800 bg-slate-900/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 {c.bannerImageUrl ? (
-                  <img src={c.bannerImageUrl} alt={c.name} className="h-16 w-28 object-cover rounded-lg border border-slate-800" />
+                  <Image
+                    src={c.bannerImageUrl}
+                    alt={c.name}
+                    width={112}
+                    height={64}
+                    unoptimized
+                    className="h-16 w-28 object-cover rounded-lg border border-slate-800"
+                  />
                 ) : (
                   <div className="h-16 w-28 rounded-lg bg-slate-800/60 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">Sem imagem</div>
                 )}
