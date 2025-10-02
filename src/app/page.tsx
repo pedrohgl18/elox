@@ -17,6 +17,7 @@ import PublicFooter from '@/components/layout/PublicFooter';
 import ViralMeter from '@/components/ui/ViralMeter';
 import { Reveal } from '@/components/ui/Reveal';
 import { LandingHero } from '@/components/ui/LandingHero';
+import NotifyForm from '@/components/ui/NotifyForm';
 import { Button } from '@/components/ui/Button';
 
 export default async function LandingPage() {
@@ -171,18 +172,7 @@ export default async function LandingPage() {
                       <p className="text-slate-600">
                         Estamos preparando a próxima campanha com marcas parceiras. Deixe seu e-mail para ser avisado em primeira mão.
                       </p>
-                      <form action="/api/notify" method="post" className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                          type="email"
-                          name="email"
-                          required
-                          placeholder="seu@email.com"
-                          className="h-11 w-full rounded-full border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                        />
-                        <button type="submit" className="h-11 rounded-full bg-gradient-to-r from-sky-600 via-indigo-700 to-blue-950 px-6 text-sm font-semibold text-white shadow-lg">
-                          Quero ser avisado
-                        </button>
-                      </form>
+                      <NotifyForm className="max-w-xl" />
                     </div>
                   )}
                 </div>

@@ -67,4 +67,12 @@ body {
   /* Hover lift */
   .hover-lift { transition: transform 200ms ease; will-change: transform; }
   .hover-lift:hover { transform: translateY(-2px); }
+
+  /* Button shimmer */
+  .btn-shimmer {
+    background-size: 200% 100% !important;
+    background-position: 0% 50% !important;
+    transition: background-position 400ms ease, filter 200ms ease;
+  }
+  .btn-shimmer:hover { background-position: 100% 50% !important; filter: brightness(1.05); }
 }
